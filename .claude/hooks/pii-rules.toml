@@ -9,7 +9,7 @@
 # A false positive gets an allowlist entry here with a one-line reason, never
 # a bypass. Go RE2 syntax: no lookarounds; allowlists test the whole match.
 
-title = "khe personal-data rules"
+title = "khe-workspace personal-data rules"
 
 [[rules]]
 id = "mac-address"

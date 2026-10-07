@@ -1,13 +1,13 @@
-# khe
+# khe-workspace
 
-[![CI](https://github.com/khelias/khe/actions/workflows/ci.yml/badge.svg)](https://github.com/khelias/khe/actions/workflows/ci.yml)
+[![CI](https://github.com/khelias/khe-workspace/actions/workflows/ci.yml/badge.svg)](https://github.com/khelias/khe-workspace/actions/workflows/ci.yml)
 
 Workspace root for the KHE estate. Open this folder in Claude Code, Codex or
 any tool that reads [`AGENTS.md`](https://agents.md/): every KHE repo sits
 under `repos/`, and the AI-agent configuration sits here, once.
 
 ```text
-khe/
+khe-workspace/
   AGENTS.md              personal preferences, tool-agnostic
   CLAUDE.md              imports AGENTS.md and the estate index
   .claude/               settings and the commit-gate hook
@@ -19,8 +19,8 @@ khe/
 ## Setup
 
 ```bash
-git clone https://github.com/khelias/khe.git
-cd khe
+git clone https://github.com/khelias/khe-workspace.git
+cd khe-workspace
 scripts/workspace.sh clone
 ```
 
