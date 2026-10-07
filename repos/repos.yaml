@@ -9,7 +9,7 @@ repos:
   - name: khe-meta
     url: https://github.com/khelias/khe-meta.git
     private: true
-    description: Estate index, portfolio decisions, private house documentation.
+    description: Private working layer, the estate roadmap, plans and house documentation.
   - name: khe-architecture
     url: https://github.com/khelias/khe-architecture.git
     check: bash scripts/check.sh

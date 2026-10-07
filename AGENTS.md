@@ -33,8 +33,11 @@ touches a running host:
 
 ## Where the estate is described
 
-- `repos/khe-meta/ESTATE.md` - the estate index: every repo, what it is for, where
-  it is deployed. Start there when it is not obvious which repo owns a thing.
+- `repos/khe-architecture/ESTATE.md` - the estate index: every repo, what it is
+  for, where it is deployed. Start there when it is not obvious which repo owns
+  a thing. The estate ADRs are beside it in `repos/khe-architecture/decisions/`
+  (public, cited as "estate ADR-NNN"); the estate roadmap and plans stay in the
+  private `repos/khe-meta/`.
 - `repos/khe-meta/house/` - private house documentation: Home Assistant rollout
   and measurements, HVAC, network. Device ids, LAN addresses of house devices
   and anything identifying live here and **never** in a public repo.
