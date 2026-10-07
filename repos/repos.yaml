@@ -10,6 +10,10 @@ repos:
     url: https://github.com/khelias/khe-meta.git
     private: true
     description: Estate index, portfolio decisions, private house documentation.
+  - name: khe-architecture
+    url: https://github.com/khelias/khe-architecture.git
+    check: bash scripts/check.sh
+    description: Public estate architecture, the decisions and the estate index.
   - name: khe-homelab
     url: https://github.com/khelias/khe-homelab.git
     check: rc=0; for f in scripts/*.sh; do bash -n "$f" || rc=1; done; exit $rc
