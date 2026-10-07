@@ -89,6 +89,8 @@ it unasked; a one-off correction goes to memory.
   repo's and the root's `AGENTS.md`/`CLAUDE.md`, affected ADRs and overlapping
   `docs/*.md`, and fix what is now wrong in the same commit. The test: would a
   fresh agent form a misleading picture? A judgement call, not a hard rule.
+  An affected ADR gets a new ADR that supersedes it, or a fix to its Status
+  line or links, never an edit of its decision.
 - A structural change (named library bump, moved files, new decision,
   changed build/test/deploy command, new invariant) updates that repo's
   `AGENTS.md` in the same commit.
