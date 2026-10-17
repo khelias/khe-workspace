@@ -23,7 +23,8 @@ effort; no `/effort ultracode` or workflows unless the operator asks.
 - **Execute** a written plan through `/goal`, which only the operator can
   type: end the planning turn with the exact line to paste, a condition
   provable from output plus a turn cap, e.g. `/goal every step in
-  repos/khe-meta/plans/x.md is checked and npm test exits 0 in the output,
+  repos/khe-meta/plans/x.md is checked, an opus subagent comparing the diff
+  to the plan reports no unfixed gaps, and npm test exits 0 in the output,
   or stop after 20 turns`. Also offer the same line as a `spawn_task` chip,
   so one click runs it in a fresh session; whether the chip's prompt runs
   as the slash command is unverified, so check the new session shows the
@@ -31,12 +32,14 @@ effort; no `/effort ultracode` or workflows unless the operator asks.
   every step is mechanical and spelled out, `opus` when steps leave
   judgement calls. The operator sets it in the new session, since switching
   models inside a session drops the earlier thinking.
-- **Check against the plan** after a `/goal` run, before the review: a
-  subagent with `model: opus` compares the diff to the plan file. Every
-  step implemented, the listed edge cases tested, nothing outside the
+- **Check against the plan** at the end of a `/goal` run, before the
+  review: a subagent with `model: opus` compares the diff to the plan file.
+  Every step implemented, the listed edge cases tested, nothing outside the
   plan's scope changed. The goal evaluator reads only the transcript, so
   "every step is checked" is the executor's own claim until this passes.
-  Fix the real gaps and say which findings were dropped.
+  It is a clause of the goal condition because as a separate step it ran
+  in 1 of 16 goal sessions (2026-10). Fix the real gaps and say which
+  findings were dropped.
 - **Review** every code change (not docs-only) before committing:
   `/code-review` (medium; `high` for risky or public-facing changes).
   Skills can pin a model and whether this one does is unverified, so after
