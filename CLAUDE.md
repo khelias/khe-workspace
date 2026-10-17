@@ -5,8 +5,8 @@
 
 ## Workflow
 
-Built-ins; the only custom skills are the UI ones in `.claude/skills/`,
-scoped to the web apps' source. Run these without being asked, at default
+Built-ins, plus the custom skills in `.claude/skills/`: the UI ones, scoped
+to the web apps' source, and `retro`. Run these without being asked, at default
 effort; no `/effort ultracode` or workflows unless the operator asks.
 
 - **Plan** a non-trivial change in plan mode, with each step's check
@@ -36,8 +36,10 @@ effort; no `/effort ultracode` or workflows unless the operator asks.
   type: end the planning turn with the exact line to paste, a condition
   provable from output plus a turn cap, e.g. `/goal every step in
   repos/khe-meta/plans/x.md is checked, an opus subagent comparing the diff
-  to the plan reports no unfixed gaps, and npm test exits 0 in the output,
-  or stop after 20 turns`. Also offer the same line as a `spawn_task` chip,
+  to the plan reports no unfixed gaps, grep -c '^## Outcome'
+  repos/khe-meta/plans/x.md prints 1, and npm test exits 0 in the output,
+  or stop after 20 turns`. The Outcome clause makes the retro part of the
+  run. Also offer the same line as a `spawn_task` chip,
   so one click runs it in a fresh session; whether the chip's prompt runs
   as the slash command is unverified, so check the new session shows the
   goal active. Say which model the goal session should run: `sonnet` when
@@ -66,6 +68,10 @@ effort; no `/effort ultracode` or workflows unless the operator asks.
   commit with `KHE_REVIEW_SKIP="<reason>"` and is reported to the operator
   with the reason.
 - **See it working** for UI changes: `/run` in the browser pane.
+- **Close out** a task after its last commit with the `retro` skill:
+  the plan file's Status and Outcome, the roadmap entry it moves, and a
+  Judgement line when a correction repeats. A small fix with no plan and
+  no roadmap entry skips it.
 
 ## Harness facts
 
@@ -113,7 +119,7 @@ effort; no `/effort ultracode` or workflows unless the operator asks.
   own commit.
 - **Skills in `repos/<name>/.claude/skills/` do not load from here**
   (gitignored directories are skipped). A needed skill goes in this repo's
-  `.claude/skills/`, scoped with `paths:`.
+  `.claude/skills/`, scoped with `paths:` when it belongs to one area.
 - **Grep reaches `repos/` only through `.rgignore`**, which negates the
   `.gitignore` entry.
 - **The browser pane reads only this root's `.claude/launch.json`**
