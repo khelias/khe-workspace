@@ -26,6 +26,10 @@ repos:
     url: https://github.com/khelias/khe-sites.git
     check: npm run -s check
     description: Static source for khe.ee and the games.khe.ee launcher.
+  - name: khe-ui
+    url: https://github.com/khelias/khe-ui.git
+    check: npm run -s check
+    description: Shared UI packages for the apps, published to npm as @khelias/ui.
   - name: khe-study
     url: https://github.com/khelias/khe-study.git
     check: npm run -s lint && npm run -s typecheck && npm run -s test:run && npm run -s test:e2e
