@@ -22,11 +22,15 @@ The agent prepares, the operator executes anything that leaves this machine or
 touches a running host:
 
 - `git push`, `ssh`, and any command against the homelab VM are the operator's.
-  Hand them over as complete, copy-pasteable command blocks, one command per
-  block, in the order they must run. A half-given chain costs a round trip.
-- Commit locally as normal. Say plainly what still needs pushing. Before
-  handing over a push, list `git log --oneline @{u}..` for that repo and name
-  any commit this session did not make: the push ships them too.
+  Hand them over once, when the work is done, as one copy-pasteable block
+  chained with `&&` in the order they must run, cleanup included, so a
+  failure stops the rest. Split the block only where a step needs checking
+  before the next. A half-given chain costs a round trip.
+- Commit locally as normal. Say plainly what still needs pushing. Right
+  before handing over a push, `git fetch` that repo and confirm the branch is
+  not behind its upstream, then list `git log --oneline @{u}..` and name any
+  commit this session did not make: the push ships them too, and so does
+  anything another session commits there before the operator runs it.
 - Ask clarifying questions before writing, not after the operator has pushed
   a first draft: every iteration costs them a push.
 - Read-only APIs (Home Assistant, GitHub) the agent uses directly.
