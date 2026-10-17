@@ -103,6 +103,10 @@ it unasked; a one-off correction goes to memory.
 - A structural change (named library bump, moved files, new decision,
   changed build/test/deploy command, new invariant) updates that repo's
   `AGENTS.md` in the same commit.
+- An estate ADR that becomes Accepted puts its rule into the `AGENTS.md` of
+  every repo whose work it constrains, cited as estate ADR-NNN, one commit
+  per repo in the same piece of work. Agents read that file, not the ADRs,
+  so a decision missing there is unknown to the next session.
 - In `AGENTS.md` files prefer descriptive facts over prohibitions: "Tailwind
   v3 currently" beats "DO NOT use v4", which goes silently wrong the day v4
   lands. Hard prohibitions stay for security and invariants, with an override
