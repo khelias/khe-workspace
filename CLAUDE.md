@@ -37,13 +37,12 @@ effort; no `/effort ultracode` or workflows unless the operator asks.
   Every step implemented, the listed edge cases tested, nothing outside the
   plan's scope changed. The goal evaluator reads only the transcript, so
   "every step is checked" is the executor's own claim until this passes.
-  It is a clause of the goal condition because as a separate step it ran
-  in 1 of 16 goal sessions (2026-10). Fix the real gaps and say which
+  It is a clause of the goal condition because as a separate step it
+  gets skipped. Fix the real gaps and say which
   findings were dropped.
 - **Review** every code change (not docs-only) before committing:
   `/simplify` first, which applies its own fixes for reuse and duplication
-  (the 2026-10 code audit found copied helpers drifting apart in every
-  repo), then `/code-review` (medium; `high` for risky or public-facing
+  (copied helpers drift apart across repos), then `/code-review` (medium; `high` for risky or public-facing
   changes) over the result. Add `/security-review` when the change touches
   an internet-facing surface (the adventure proxy, nginx, Cloudflare or
   tunnel config, GitHub Actions workflows) or the commit gate.
