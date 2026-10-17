@@ -118,6 +118,12 @@ it unasked; a one-off correction goes to memory.
   the README is the one that goes stale. The CI badge is the live status.
 - Edit existing docs; do not add new doc files (READMEs, CHANGELOGs) unless
   asked.
+- Adding an automated writer anywhere (a bot that merges, a scheduled job, an
+  automation that acts) puts it in the writer register in khe-meta's
+  `AMBITIONS.md` in the same change
+  ([estate ADR-007](https://github.com/khelias/khe-architecture/blob/main/decisions/007-automated-writers.md)).
+  This root's own Renovate automerge (Actions minor and patch, digests, pins)
+  is undone by reverting its commit on `main`.
 - Verification artifacts (screenshots, saved pages, one-off scripts) go to the
   session scratchpad, not into a repo or the workspace root.
 
