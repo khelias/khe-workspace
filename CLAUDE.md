@@ -13,10 +13,21 @@ effort; no `/effort ultracode` or workflows unless the operator asks.
   command. Plan files land in `repos/khe-meta/plans/` (`plansDirectory`).
   The operator does not switch modes: when a task needs a plan, enter plan
   mode yourself with the `EnterPlanMode` tool rather than planning in chat.
+  The plan's Context lists the decisions it makes, each with its ADR or
+  why it needs none. A decision needs one when it is hard to reverse,
+  picks between real alternatives, and spans two or more repos or decides
+  which repo owns a concern (estate ADR in `khe-architecture/decisions/`),
+  or shapes one repo's architecture (that repo's `docs/adr/` or
+  `docs/decisions/`; khe-homelab's `docs/service-choices.md`). Writing it
+  is a step of the plan, Accepted on the day the operator approves the
+  plan; a changed Accepted decision gets a superseding ADR in the same
+  way. A plan in the area of a Proposed ADR says whether it accepts,
+  changes or leaves it, and why.
   After writing the plan file and before handing over the `/goal` line,
   have a subagent without this conversation review it: what does the plan
-  get wrong or leave out that would break the goal or correctness? Gaps,
-  not style. Verify each finding, fix the plan for the real ones, say which
+  get wrong or leave out that would break the goal or correctness, and
+  which decision it makes lacks its ADR step? Gaps, not style. Verify
+  each finding, fix the plan for the real ones, say which
   were dropped. Plan mode names the file with a random slug and allows no
   other edits, so after leaving it rename the file (`git mv` once
   committed) to a descriptive kebab-case name (`n8n-removal.md`) before
