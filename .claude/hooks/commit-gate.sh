@@ -1,19 +1,26 @@
 #!/usr/bin/env bash
 # PreToolUse hook: before Claude runs `git commit` in the workspace root or one
-# of the workspace repos, scan what the commit adds for personal-data patterns
-# (.claude/hooks/pii-rules.toml, skipped for repos marked `private: true` in
-# repos/repos.yaml), then run that repo's `check:` command. Either failing
-# blocks the commit (exit 2, output to stderr), as does a commit whose repo it
-# cannot resolve or that is an unlisted repo inside the workspace. It also
-# refuses `git add -A/./-u` and `git commit -a` in any call. Other Bash calls
-# pass through untouched, so a passing commit costs no tokens.
+# of the workspace repos, require a /code-review in this session when the
+# commit may include code (anything but md, txt, pdf and images), then scan
+# what the commit adds for personal-data patterns (.claude/hooks/pii-rules.toml,
+# skipped for repos marked `private: true` in repos/repos.yaml), then run that
+# repo's `check:` command. Any of them failing blocks the commit (exit 2,
+# output to stderr), as does a commit whose repo it cannot resolve or that is
+# an unlisted repo inside the workspace. The review is a `Skill` call to
+# code-review in the session transcript; prefixing the commit with
+# KHE_REVIEW_SKIP="<reason>" skips only that check. It also refuses
+# `git add -A/./-u` and `git commit -a` in any call. Other Bash calls pass
+# through untouched, so a passing commit costs no tokens. The hook is
+# registered with onFailure "block", so an error in this script blocks every
+# Bash call: it runs under /bin/bash 3.2.
 set -uo pipefail
 
 input="$(cat)"
 cmd="$(jq -r '.tool_input.command // empty' <<<"$input")"
 cwd="$(jq -r '.cwd // empty' <<<"$input")"
 root="${CLAUDE_PROJECT_DIR:-$cwd}"
-git_re='(^|[;&|([:space:]/])git(([[:space:]]+-[Cc][[:space:]]+[^[:space:]]+)*)[[:space:]]+'
+git_core='git(([[:space:]]+-[Cc][[:space:]]+[^[:space:]]+)*)[[:space:]]+'
+git_re="(^|[;&|([:space:]/])${git_core}"
 
 # Matching runs on one line with heredoc bodies dropped and every quoted string
 # that holds a space replaced by Q: a message or PR body that mentions a git
@@ -90,6 +97,43 @@ while [[ "$rest" =~ $commit_re ]]; do
     dirs+=("$d")
     rest="${rest#*"$m"}"
 done
+
+# A deliberate review skip must prefix the commit itself; on $scan a message or
+# heredoc that mentions the variable cannot trigger it. An empty value does not
+# skip. The skip covers every repo the call commits in.
+review_skip=
+skip_re="(^|[;&|(])[[:space:]]*KHE_REVIEW_SKIP=([^[:space:];&|]+)[[:space:]]+([^[:space:];&|]*/)?${git_core}commit([[:space:]]|;|\$)"
+rest="$scan"
+while [[ "$rest" =~ $skip_re ]]; do
+    v="${BASH_REMATCH[2]}"
+    [[ "$v" == '""' || "$v" == "''" ]] || { review_skip=1; break; }
+    rest="${rest#*"${BASH_REMATCH[0]}"}"
+done
+transcript="$(jq -r '.transcript_path // empty' <<<"$input")"
+review=
+
+# Prints yes or no for a code-review Skill call in the main transcript and its
+# subagents' files, or nothing when no line parses. Lines are parsed one by one
+# because the last one may still be half written, and streamed with an early
+# stop because a transcript can run to tens of megabytes.
+review_state() {
+    local f files
+    [[ -n "$transcript" && -f "$transcript" ]] || return 0
+    files=("$transcript")
+    for f in "${transcript%.jsonl}"/subagents/*.jsonl; do
+        [[ -f "$f" ]] && files+=("$f")
+    done
+    jq -R -n -r '
+        def review: .type == "assistant" and
+            any(.message | objects | .content | arrays | .[] | objects;
+                .type == "tool_use" and .name == "Skill" and
+                (.input | objects | .skill | strings | test("(^|:)code-review$")));
+        label $out | foreach ((inputs | fromjson? | objects), "EOF") as $o ("none";
+            if $o == "EOF" then . else "no" end;
+            if $o == "EOF" then select(. != "none")
+            elif ($o | review) then ("yes", break $out)
+            else empty end)' "${files[@]}" 2>/dev/null
+}
 
 tmp_root="$(mktemp -d)" && [[ -d "$tmp_root" ]] || fail "no temporary directory for the personal-data scan"
 trap 'rm -r -f -- "$tmp_root"' EXIT
@@ -177,19 +221,53 @@ gate() {
         exit 2
     }
 
-    # Only added lines are scanned, so removing personal data never blocks. The
-    # hook runs before any same-call `git add`, so staged, unstaged and untracked
-    # changes are all scanned: any of them may end up in this commit.
-    if [[ "$(yaml_key private)" != "true" ]]; then
+    tmp="$(mktemp -d "$tmp_root/gate.XXXXXX")" || fail "no temporary directory for $label"
+    g() { git -C "$top" -c core.quotePath=false "$@"; }
+    base=HEAD
+    g rev-parse -q --verify HEAD >/dev/null || base=4b825dc642cb6eb9a060e54bf8d69288fbee4904
+
+    # The hook runs before any same-call `git add`, so staged, unstaged and
+    # untracked files may all end up in this commit. A scanned repo's diffs are
+    # taken right beside its name lists, which must list the same files in the
+    # same order. renamed.names keeps both sides of a rename for the code check.
+    scanned=1
+    [[ "$(yaml_key private)" == "true" ]] && scanned=
+    list_changes() {
+        { [[ -z "$scanned" ]] ||
+            g diff --cached -U0 --no-color --no-ext-diff --no-textconv -M "$base" > "$tmp/staged.diff"; } &&
+            g diff --cached --name-only -z -M "$base" > "$tmp/staged.names" &&
+            { [[ -z "$scanned" ]] ||
+                g diff -U0 --no-color --no-ext-diff --no-textconv > "$tmp/unstaged.diff"; } &&
+            g diff --name-only -z > "$tmp/unstaged.names" &&
+            g ls-files -z --others --exclude-standard > "$tmp/untracked.names" &&
+            g diff --cached --name-only -z --no-renames "$base" > "$tmp/renamed.names"
+    }
+    list_changes || fail "git could not list the changes in $label"
+
+    # A file name holding a newline is split here; its last part still carries
+    # the real extension, so the split can only add code, never hide it.
+    code="$(cat "$tmp/renamed.names" "$tmp/unstaged.names" "$tmp/untracked.names" | tr '\0' '\n' | awk '
+        NF == 0 { next }
+        { b = $0; sub(/.*\//, "", b); e = ""; if (b ~ /.\./) { e = tolower(b); sub(/.*\./, "", e) } }
+        e ~ /^(md|txt|pdf|png|jpg|jpeg|gif|webp|svg)$/ { next }
+        !seen[$0]++ { n++; if (n <= 5) list = list (n > 1 ? ", " : "") $0 }
+        END { if (n > 5) list = list ", and " (n - 5) " more"; printf "%s", list }')"
+    if [[ -n "$code" && -z "$review_skip" ]]; then
+        [[ -n "$review" ]] || review="$(review_state)"
+        [[ -n "$review" ]] || review=unreadable
+        skip_hint="to skip deliberately, prefix the commit with KHE_REVIEW_SKIP=\"<reason>\" and tell the operator why"
+        [[ "$review" == unreadable ]] &&
+            fail "$label commit includes code ($code) and the session transcript '${transcript:-none given}' could not be read to find a /code-review, so a review cannot be seen either; $skip_hint, naming the unreadable transcript"
+        [[ "$review" == yes ]] ||
+            fail "$label commit includes code ($code) and no /code-review ran in this session. Have Claude run /code-review, fix confirmed findings, then commit; files from another session in this tree need a worktree; $skip_hint"
+    fi
+
+    # Only added lines are scanned, so removing personal data never blocks.
+    if [[ -n "$scanned" ]]; then
         rules="$root/.claude/hooks/pii-rules.toml"
         command -v gitleaks >/dev/null ||
             fail "gitleaks is not installed, so the personal-data scan cannot run. Install it with 'brew install gitleaks'"
         [[ -f "$rules" ]] || fail "$rules is missing"
-
-        tmp="$(mktemp -d "$tmp_root/gate.XXXXXX")" || fail "no temporary directory for the personal-data scan"
-        g() { git -C "$top" -c core.quotePath=false "$@"; }
-        base=HEAD
-        g rev-parse -q --verify HEAD >/dev/null || base=4b825dc642cb6eb9a060e54bf8d69288fbee4904
 
         # File names come from the NUL-separated list in $2, not the diff headers,
         # which quote or mangle unusual paths; both list files in the same order.
@@ -210,12 +288,6 @@ gate() {
             done < "$2"
         }
 
-        g diff --cached -U0 --no-color --no-ext-diff --no-textconv -M "$base" > "$tmp/staged.diff" &&
-            g diff --cached --name-only -z -M "$base" > "$tmp/staged.names" &&
-            g diff -U0 --no-color --no-ext-diff --no-textconv > "$tmp/unstaged.diff" &&
-            g diff --name-only -z > "$tmp/unstaged.names" &&
-            g ls-files -z --others --exclude-standard > "$tmp/untracked.names" ||
-            fail "git could not list the changes in $label for the personal-data scan"
         split_diff "$tmp/staged.diff" "$tmp/staged.names" s
         split_diff "$tmp/unstaged.diff" "$tmp/unstaged.names" w
 

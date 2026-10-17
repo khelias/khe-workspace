@@ -50,13 +50,16 @@ effort; no `/effort ultracode` or workflows unless the operator asks.
   Skills can pin a model and whether this one does is unverified, so after
   a `sonnet` goal ask the operator to switch the session to `opus` first.
   Verify each finding against the code, fix the confirmed ones, and say
-  which were dropped. If you skip the review, say so and why.
+  which were dropped. The commit gate blocks a code commit until a
+  `/code-review` has run in the session; a deliberate skip prefixes the
+  commit with `KHE_REVIEW_SKIP="<reason>"` and is reported to the operator
+  with the reason.
 - **See it working** for UI changes: `/run` in the browser pane.
 
 ## Harness facts
 
 - **`git commit` in a repo is gated.** `.claude/hooks/commit-gate.sh` runs
-  that repo's `check:` first and blocks the commit on failure. Fix the
+  that repo's `check:` before the commit and blocks it on failure. Fix the
   cause; never work around the gate. Do not run `check:` yourself right
   before committing; the gate already does. It knows a repo listed in
   `repos/repos.yaml` by its git common dir under `repos/` of the session
@@ -64,6 +67,21 @@ effort; no `/effort ultracode` or workflows unless the operator asks.
   wherever it sits, else by a remote that is its `url:` or its checkout.
   Any other repo inside the workspace is blocked; repos outside it, such as
   scratch repos, pass.
+- **The gate requires a code review** before a commit that may include
+  code, in every gated repo, private ones included: any staged, unstaged or
+  untracked file other than `md txt pdf png jpg jpeg gif webp svg` (a file
+  without an extension is code; a rename counts both names). The evidence
+  is a `Skill` call to `code-review` in the session transcript or a
+  subagent's, once per session; a `/code-review` the operator types is
+  not recognised, so have Claude run it. It is checked before the personal-data scan and `check:`.
+  `KHE_REVIEW_SKIP="<reason>" git commit ...` skips only this check; an
+  empty value or a mention inside a message does not. No readable
+  transcript blocks a code commit. Another session's dirty files in the
+  same tree count too: work in a worktree.
+- **The gate fails closed.** Its hook has `"onFailure": "block"`, so a
+  crash, a timeout or a missing script blocks every Bash call in every
+  root session, not just commits. It runs under macOS `/bin/bash` 3.2. If it
+  breaks, revert `.claude/settings.json` or the script by edit, not Bash.
 - **The gate also scans for personal data** in every repo, the root
   included, unless `repos/repos.yaml` marks it `private: true`: lines the
   commit adds (staged, unstaged, untracked) and the message, against the
