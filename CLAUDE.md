@@ -44,7 +44,9 @@ effort; no `/effort ultracode` or workflows unless the operator asks.
   `/simplify` first, which applies its own fixes for reuse and duplication
   (the 2026-10 code audit found copied helpers drifting apart in every
   repo), then `/code-review` (medium; `high` for risky or public-facing
-  changes) over the result.
+  changes) over the result. Add `/security-review` when the change touches
+  an internet-facing surface (the adventure proxy, nginx, Cloudflare or
+  tunnel config, GitHub Actions workflows) or the commit gate.
   Skills can pin a model and whether this one does is unverified, so after
   a `sonnet` goal ask the operator to switch the session to `opus` first.
   Verify each finding against the code, fix the confirmed ones, and say
