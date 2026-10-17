@@ -84,7 +84,9 @@ it unasked; a one-off correction goes to memory.
 
 ## Code and docs
 
-- Comments only for a non-obvious why, never for what the code does.
+- Comments only for a non-obvious why, never for what the code does or how
+  it got there: history ("previously", "now uses", "V4:") goes in the commit
+  message.
 - Trivial changes need no doc update. A touched feature that is documented
   nowhere gets a one-line summary. When unsure whether to document, ask.
 - After a non-trivial change (new feature, moved files, removed concept,

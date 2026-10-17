@@ -41,7 +41,10 @@ effort; no `/effort ultracode` or workflows unless the operator asks.
   in 1 of 16 goal sessions (2026-10). Fix the real gaps and say which
   findings were dropped.
 - **Review** every code change (not docs-only) before committing:
-  `/code-review` (medium; `high` for risky or public-facing changes).
+  `/simplify` first, which applies its own fixes for reuse and duplication
+  (the 2026-10 code audit found copied helpers drifting apart in every
+  repo), then `/code-review` (medium; `high` for risky or public-facing
+  changes) over the result.
   Skills can pin a model and whether this one does is unverified, so after
   a `sonnet` goal ask the operator to switch the session to `opus` first.
   Verify each finding against the code, fix the confirmed ones, and say
