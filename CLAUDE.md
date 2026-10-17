@@ -59,7 +59,9 @@ effort; no `/effort ultracode` or workflows unless the operator asks.
   (copied helpers drift apart across repos), then `/code-review` (medium; `high` for risky or public-facing
   changes) over the result. Add `/security-review` when the change touches
   an internet-facing surface (the adventure proxy, nginx, Cloudflare or
-  tunnel config, GitHub Actions workflows) or the commit gate.
+  tunnel config, GitHub Actions workflows) or the commit gate. Run it
+  through a subagent: the skill ends its reply with the report alone, which
+  in the main loop ends the turn and stalls a `/goal` run.
   Skills can pin a model and whether this one does is unverified, so after
   a `sonnet` goal ask the operator to switch the session to `opus` first.
   Verify each finding against the code, fix the confirmed ones, and say
