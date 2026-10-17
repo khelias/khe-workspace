@@ -5,7 +5,8 @@
 
 ## Workflow
 
-Built-ins, no custom skills. Run these without being asked, at default
+Built-ins; the only custom skills are the UI ones in `.claude/skills/`,
+scoped to the web apps' source. Run these without being asked, at default
 effort; no `/effort ultracode` or workflows unless the operator asks.
 
 - **Plan** a non-trivial change in plan mode, with each step's check
