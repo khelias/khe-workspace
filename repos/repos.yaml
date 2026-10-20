@@ -16,7 +16,7 @@ repos:
     description: Public estate architecture, the decisions and the estate index.
   - name: khe-homelab
     url: https://github.com/khelias/khe-homelab.git
-    check: rc=0; for f in scripts/*.sh; do bash -n "$f" || rc=1; done; exit $rc
+    check: rc=0; for f in scripts/*.sh; do bash -n "$f" || rc=1; done; [ ! -d infrastructure/edge-fallback ] || node --test infrastructure/edge-fallback/test/ || rc=1; exit $rc
     description: Proxmox + Docker Compose infrastructure.
   - name: khe-home-assistant
     url: https://github.com/khelias/khe-home-assistant.git
