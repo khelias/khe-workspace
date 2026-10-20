@@ -45,6 +45,6 @@ repos:
     description: Private family trip atlas.
   - name: ha-estfeed
     url: https://github.com/khelias/ha-estfeed.git
-    check: .venv/bin/ruff check custom_components tests && .venv/bin/ruff format --check custom_components tests
+    check: .venv/bin/ruff check custom_components tests && .venv/bin/ruff format --check custom_components tests && .venv/bin/mypy && .venv/bin/python -m pytest tests -q --cov=custom_components/estfeed --cov-fail-under=85
     upstream: https://github.com/tehisain/ha-estfeed.git
     description: Fork of the Elering Estfeed Home Assistant integration.
