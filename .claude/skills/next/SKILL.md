@@ -14,11 +14,15 @@ plan or house files; say what the item is instead.
 
 Take it from the operator's words (`/next õhtu`). Otherwise ask once with
 `AskUserQuestion`: about an hour, an evening, or a weekend. It sizes
-everything in steps 2 and 3.
+everything in steps 2 and 3. An answer that names no time: rank without a
+budget and size each item.
 
 ## 2. Unfinished work
 
-Repos, PRs and CI in one call from the workspace root:
+Repos, PRs and CI in one call from the workspace root, with the sandbox
+off (`dangerouslyDisableSandbox: true`): sandboxed git does not always see
+the remote refs, and then reads unpushed commits as none. The root itself
+is not in `repos.yaml`, hence the last line.
 
 ```bash
 for r in $(awk '/^[[:space:]]*- name:/{print $3}' repos/repos.yaml); do
@@ -27,6 +31,7 @@ for r in $(awk '/^[[:space:]]*- name:/{print $3}' repos/repos.yaml); do
   gh run list --repo khelias/$r --branch main --status completed --limit 20 --json workflowName,conclusion --jq "group_by(.workflowName)|map(.[0])|.[]|select(.conclusion!=\"success\")|\"$r CI: \(.workflowName) \(.conclusion)\""
 done
 scripts/workspace.sh status
+git fetch --quiet && git log --oneline @{u}..
 ```
 
 - Ahead of upstream: unpushed commits (`git -C repos/<name> log --oneline
