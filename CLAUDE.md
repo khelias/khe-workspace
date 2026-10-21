@@ -131,6 +131,10 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   `python3 -m http.server <port> --directory <path>`.
 - **The Bash sandbox blocks raw TCP.** WebSocket scripts need
   `dangerouslyDisableSandbox: true`; `curl` and REST do not.
+- **Sandboxed git may not see every ref.** Branches and worktrees made in
+  the main checkout, and remote refs such as `origin/main`, can be missing,
+  so `@{u}..` prints nothing and ahead reads 0. Run checks of unpushed
+  commits, branches or worktrees with `dangerouslyDisableSandbox: true`.
 - **This machine blocks commands outside this repo's control.**
   `~/.claude/guardrails/pretooluse-guard.sh` fails the whole Bash command on
   a recursive `rm`, `git checkout --`, `git reset --hard` and other
