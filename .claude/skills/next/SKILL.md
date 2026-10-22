@@ -51,7 +51,9 @@ days old may be written but not started. Plans from before `retro`
 (2026-10-17) often lack Status and Outcome; that alone does not make them
 unfinished. Then sort the open steps:
 
-- A push step is done when that repo is not ahead of upstream.
+- A push step is done when that repo is not ahead of upstream. In a
+  `pr: true` repo the work sits on a branch instead: it is done when
+  `git branch -r --contains <branch tip>` lists `origin/main`.
 - A step that runs only on a condition ("if HA does not come up") is not
   open.
 - A step whose work is in the repo's `git log` since the plan's date is
