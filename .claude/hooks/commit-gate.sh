@@ -8,8 +8,12 @@
 # output to stderr), as does a commit whose repo it cannot resolve or that is
 # an unlisted repo inside the workspace. The review is a `Skill` call to
 # code-review in the session transcript; prefixing the commit with
-# KHE_REVIEW_SKIP="<reason>" skips only that check. It also refuses
-# `git add -A/./-u` and `git commit -a` in any call. Other Bash calls pass
+# KHE_REVIEW_SKIP="<reason>" skips only that check. In a repo marked
+# `pr: true` it first refuses a commit on the default branch or a detached
+# HEAD, since agent work reaches main there through a pull request (estate
+# ADR-020); KHE_PR_SKIP="<reason>" skips only that rule, and both skips may
+# prefix one commit. It also refuses `git add -A/./-u` and `git commit -a`
+# in any call. Other Bash calls pass
 # through untouched, so a passing commit costs no tokens. The hook is
 # registered with onFailure "block", so an error in this script blocks every
 # Bash call: it runs under /bin/bash 3.2.
@@ -98,17 +102,29 @@ while [[ "$rest" =~ $commit_re ]]; do
     rest="${rest#*"$m"}"
 done
 
-# A deliberate review skip must prefix the commit itself; on $scan a message or
-# heredoc that mentions the variable cannot trigger it. An empty value does not
-# skip. The skip covers every repo the call commits in.
-review_skip=
-skip_re="(^|[;&|(])[[:space:]]*KHE_REVIEW_SKIP=([^[:space:];&|]+)[[:space:]]+([^[:space:];&|]*/)?${git_core}commit([[:space:]]|;|\$)"
+# A deliberate skip must prefix the commit itself, alone or beside the other
+# skip in either order; on $scan a message or heredoc that mentions the
+# variable cannot trigger it. An empty value does not skip. A skip covers every
+# repo the call commits in.
+review_skip= pr_skip=
+skip_re="(^|[;&|(])[[:space:]]*((KHE_[A-Z]+_SKIP=[^[:space:];&|]+[[:space:]]+)+)([^[:space:];&|]*/)?${git_core}commit([[:space:]]|;|\$)"
+skip_set() {
+    [[ "$1" =~ (^|[[:space:]])$2=([^[:space:]]+) ]] &&
+        [[ "${BASH_REMATCH[2]}" != '""' && "${BASH_REMATCH[2]}" != "''" ]]
+}
 rest="$scan"
 while [[ "$rest" =~ $skip_re ]]; do
-    v="${BASH_REMATCH[2]}"
-    [[ "$v" == '""' || "$v" == "''" ]] || { review_skip=1; break; }
-    rest="${rest#*"${BASH_REMATCH[0]}"}"
+    m="${BASH_REMATCH[0]}" vars="${BASH_REMATCH[2]}"
+    skip_set "$vars" KHE_REVIEW_SKIP && review_skip=1
+    skip_set "$vars" KHE_PR_SKIP && pr_skip=1
+    rest="${rest#*"$m"}"
 done
+# The reason is read from $cmd, where its quotes are intact, but only as a
+# command prefix; whether the skip applies was decided on $scan above.
+pr_reason=
+reason_re="(^|[;&|(]|"$'\n'")[[:space:]]*(KHE_[A-Z]+_SKIP=[^[:space:];&|]+[[:space:]]+)*KHE_PR_SKIP=(\"[^\"]*\"|'[^']*'|[^[:space:];&|]+)"
+[[ -n "$pr_skip" && "$cmd" =~ $reason_re ]] && pr_reason="$(unquote "${BASH_REMATCH[3]}")"
+pr_skipped=()
 transcript="$(jq -r '.transcript_path // empty' <<<"$input")"
 review=
 
@@ -210,6 +226,21 @@ gate() {
             $0 ~ "^[[:space:]]*" key ":" && cur == want { sub(/^[^:]*:[[:space:]]*/, ""); sub(/[[:space:]]+$/, ""); print; exit }
         ' "$root/repos/repos.yaml" 2>/dev/null
     }
+
+    # Estate ADR-020: in a `pr: true` repo agent work reaches main through a
+    # pull request, so a commit goes on a branch. The hook runs before the
+    # command, so a `git switch -c` in the same call has not happened yet.
+    if [[ "$(yaml_key pr)" == "true" ]]; then
+        local branch default
+        branch="$(git -C "$top" symbolic-ref -q --short HEAD)"
+        default="$(git -C "$top" symbolic-ref -q --short refs/remotes/origin/HEAD)"
+        default="${default#origin/}"
+        if [[ -z "$branch" || "$branch" == main || "$branch" == "$default" ]]; then
+            [[ -n "$pr_skip" ]] ||
+                fail "$label takes agent work through a pull request (estate ADR-020) and this commit would land on ${branch:-a detached HEAD}. Run 'git switch -c <branch>' as a command of its own first: a switch in the same call runs after this check. For an emergency, prefix the commit with KHE_PR_SKIP=\"<reason>\" and tell the operator why"
+            pr_skipped+=("$label ${branch:-detached HEAD}")
+        fi
+    fi
 
     block() {
         {
@@ -316,6 +347,7 @@ gate() {
 
         # gitleaks runs from $tmp so a .gitleaksignore in the repo cannot silence
         # a finding, and --ignore-gitleaks-allow closes the inline allow comment.
+        # scripts/pii-scan-range.sh, the CI scan, has the same hardening.
         found=()
         for chunk in "$tmp"/*.lines; do
             chunk="${chunk%.lines}"
@@ -356,4 +388,9 @@ gate() {
 }
 
 for d in "${dirs[@]}"; do gate "$d"; done
+# A skipped PR rule is shown to the operator, not only to Claude.
+if [[ ${#pr_skipped[@]} -gt 0 ]]; then
+    jq -n --arg m "commit-gate: KHE_PR_SKIP (${pr_reason:-no reason given}): committing without a pull request on ${pr_skipped[*]}." \
+        '{systemMessage: $m}'
+fi
 exit 0

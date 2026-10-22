@@ -29,7 +29,8 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   get wrong or leave out that would break the goal or correctness, and
   which decision it makes lacks its ADR step? Gaps, not style. Verify
   each finding, fix the plan for the real ones, say which
-  were dropped. Plan mode names the file with a random slug and allows no
+  were dropped, and write `**Plan review:** <n> (<d> dropped)` under the
+  plan's Status for `retro`'s Caught line to copy. Plan mode names the file with a random slug and allows no
   other edits, so after leaving it rename the file (`git mv` once
   committed) to a descriptive kebab-case name (`n8n-removal.md`) before
   the `/goal` line names it.
@@ -98,6 +99,15 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   empty value or a mention inside a message does not. No readable
   transcript blocks a code commit. Another session's dirty files in the
   same tree count too: work in a worktree.
+- **The gate keeps `pr: true` repos off `main`.** In a repo that
+  `repos/repos.yaml` marks `pr: true` (estate ADR-020) it refuses a commit
+  on `main`, the remote's default branch or a detached HEAD; the handover
+  for such a repo is in `AGENTS.md`. It runs before the command, so
+  `git switch -c x && git commit` in one call is checked against the old
+  branch: run the switch as a command of its own first.
+  `KHE_PR_SKIP="<reason>" git commit ...` skips only this rule, for an
+  emergency, and shows the reason to the operator; it may stand beside
+  `KHE_REVIEW_SKIP` in either order.
 - **The gate fails closed.** Its hook has `"onFailure": "block"`, so a
   crash, a timeout or a missing script blocks every Bash call in every
   root session, not just commits. It runs under macOS `/bin/bash` 3.2. If it

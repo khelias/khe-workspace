@@ -60,6 +60,9 @@ unfinished. Then sort the open steps:
   backups) goes in one line of things to check by hand, not counted.
 - A plan named like credentials (`*password*`, `*secret*`): do not open
   it. Give its name and open-step count, and let the operator size it.
+- A done plan whose `**Caught:**` line still says `pending` (the
+  operator's look or the push outcome): one line asking the operator for
+  it, ranked below unfinished work. `retro` then updates the line.
 
 ## 3. Ready roadmap items
 

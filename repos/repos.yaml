@@ -5,6 +5,8 @@
 # private: true exempts a repo from the gate's personal-data scan; every other
 # repo is scanned (.claude/hooks/pii-rules.toml). The gate blocks commits in a
 # repo inside the workspace that is missing from this list.
+# pr: true takes agent work to main through a pull request whose required
+# checks pass (estate ADR-020): the gate refuses commits on the default branch.
 repos:
   - name: khe-meta
     url: https://github.com/khelias/khe-meta.git
@@ -25,6 +27,7 @@ repos:
   - name: khe-sites
     url: https://github.com/khelias/khe-sites.git
     check: npm run -s check
+    pr: true
     description: Static source for khe.ee and the games.khe.ee launcher.
   - name: khe-ui
     url: https://github.com/khelias/khe-ui.git

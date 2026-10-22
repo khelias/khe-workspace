@@ -25,10 +25,20 @@ Skip when the task had no plan.
 - Under the title, set `**Status:** done (<repo> \`<sha>\`)`, the form the
   existing plans use, with more than one repo or sha separated by `;`.
   Steps left over: `partly done`, plus what is left.
-- At the end, add `## Outcome`, at most about ten lines: what differs from
-  the plan and why, what was left out and where it went, review findings
-  that were dropped, what was verified only partly. A plan that ran as
-  written says so in one line.
+- At the end, add `## Outcome`. Its first line is exactly one Caught line,
+  which `scripts/agent-metrics.sh` reads:
+
+  `**Caught:** plan review <n> (<d> dropped); plan check <n>; code review <n> (<d> dropped); security review <n|->; operator <n|pending>; push <unchanged|changed|discarded|pending>.`
+
+  Plan review is copied from the plan's `**Plan review:**` line. `<n>`
+  counts findings acted on, `<d>` those dropped; `-` marks a check that
+  did not run. `operator` (what the operator's look before the push found)
+  and `push` (pushed unchanged, changed first, or discarded) stay `pending`
+  until the operator says; then update the line in its own khe-meta commit.
+- After it, at most about ten lines of prose: what differs from the plan
+  and why, what was left out and where it went, review findings that were
+  dropped, what was verified only partly. A plan that ran as written says
+  so in one line.
 
 ## 3. Roadmap
 

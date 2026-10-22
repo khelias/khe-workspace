@@ -31,6 +31,15 @@ touches a running host:
   not behind its upstream, then list `git log --oneline @{u}..` and name any
   commit this session did not make: the push ships them too, and so does
   anything another session commits there before the operator runs it.
+- In a repo marked `pr: true` in `repos/repos.yaml`, agent work reaches
+  `main` through a pull request whose required checks pass
+  ([estate ADR-020](https://github.com/khelias/khe-architecture/blob/main/decisions/020-agent-work-through-pull-requests.md)):
+  commit on a branch, and hand over `cd <absolute repo path> && git fetch &&
+  git log --oneline origin/main..<branch> && git push -u origin <branch> &&
+  gh pr create --head <branch> --fill && gh pr merge <branch> --auto --merge`.
+  The check before it reads `origin/main..<branch>` instead of `@{u}..`. A
+  PR behind `main` waits for `gh pr update-branch <branch>`, since the
+  protection there is strict.
 - Ask clarifying questions before writing, not after the operator has pushed
   a first draft: every iteration costs them a push.
 - Read-only APIs (Home Assistant, GitHub) the agent uses directly.
