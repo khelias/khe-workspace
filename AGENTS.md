@@ -36,10 +36,18 @@ touches a running host:
   ([estate ADR-020](https://github.com/khelias/khe-architecture/blob/main/decisions/020-agent-work-through-pull-requests.md)):
   commit on a branch, and hand over `cd <absolute repo path> && git fetch &&
   git log --oneline origin/main..<branch> && git push -u origin <branch> &&
-  gh pr create --head <branch> --fill && gh pr merge <branch> --auto --merge`.
+  gh pr create --head <branch> --title "<title>" --body-file <body file> &&
+  gh pr merge <branch> --auto --merge`.
   The check before it reads `origin/main..<branch>` instead of `@{u}..`. A
   PR behind `main` waits for `gh pr update-branch <branch>`, since the
   protection there is strict.
+- The operator reads a PR, not its code. The agent writes its title (what
+  changes, in words, never the branch name) and a body file in the session
+  scratchpad: a `TL;DR` of two to four plain sentences first (what a
+  visitor or the operator will notice, what could go wrong, how to undo
+  it), then the checks that ran and the estate ADR it follows. No code,
+  no file lists, no private khe-meta links: the PR is public. The same
+  TL;DR, in Estonian, goes in the handover message above the command.
 - Ask clarifying questions before writing, not after the operator has pushed
   a first draft: every iteration costs them a push.
 - Read-only APIs (Home Assistant, GitHub) the agent uses directly.
