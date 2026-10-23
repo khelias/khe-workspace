@@ -141,6 +141,10 @@ it unasked; a one-off correction goes to memory.
   ([estate ADR-007](https://github.com/khelias/khe-architecture/blob/main/decisions/007-automated-writers.md)).
   This root's own Renovate automerge (Actions minor and patch, digests, pins)
   is undone by reverting its commit on `main`.
+- Every web app runs `khe-design-lint` from `@khelias/ui` in its lint
+  ([estate ADR-021](https://github.com/khelias/khe-architecture/blob/main/decisions/021-family-shell-and-design-check.md)),
+  against a committed baseline that only shrinks. A change that would raise
+  it keeps the line with `design-lint-allow <rule>: <reason>` instead.
 - Verification artifacts (screenshots, saved pages, one-off scripts) go to the
   session scratchpad, not into a repo or the workspace root.
 
