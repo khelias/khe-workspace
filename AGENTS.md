@@ -102,6 +102,10 @@ it unasked; a one-off correction goes to memory.
   worse than saying it is unverified.
 - **Write longer plans to a file, not into the conversation.** A plan that
   only exists in chat is lost by the next session.
+- **One fact, one place on the page.** Before adding a summary, a panel or a
+  shortcut, check whether what it repeats sits right below it; a second block
+  for the same day or the same list is the repetition the operator keeps
+  removing.
 
 ## Code and docs
 
