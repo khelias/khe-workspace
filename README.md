@@ -37,8 +37,8 @@ so `~/.claude/` and `~/.codex/` keep serving other projects.
   Grep skips it (`.rgignore` puts it back), and skills inside a repo load
   only in a session started in that repo.
 - **Built-ins over custom skills.** Plan mode, `/goal`, `/code-review` and
-  `/run` cover plan, execute, review and verify; `CLAUDE.md` says when to
-  use each. A custom skill is added only for knowledge no built-in can have.
+  `/run` cover plan, execute, review and verify; `CLAUDE.md` and the
+  `plan-file` skill say when to use each. A custom skill is added only for knowledge no built-in can have.
 - **Small on purpose.** Standards ([agents.md](https://agents.md/)) over
   frameworks, and every file earns its place.
 

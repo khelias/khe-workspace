@@ -32,10 +32,8 @@ instance), the operator runs them from a handover:
 - Kept with the operator in every session: a push that would ship commits
   this session did not make, a diff under `.github/workflows/`, a `v*` tag
   in khe-ui (it publishes to npm), fetching secrets, and the destructive
-  operations under Boundaries. The commit gate refuses force pushes, a push
-  to `main` of a `pr: true` repo, deleting `main` anywhere, a khe-ui tag
-  push, `gh pr merge --admin` and a push it cannot read (a variable,
-  `GIT_DIR`).
+  operations under Boundaries. Never a force push, and never an admin merge
+  past a pull request's required checks.
 - Commit locally as normal. Right before a push, `git fetch` that repo and
   confirm the branch is not behind its upstream, then list `git log
   --oneline @{u}..` and stop on any commit this session did not make: the
@@ -49,9 +47,11 @@ instance), the operator runs them from a handover:
   The check before it reads `origin/main..<branch>` instead of `@{u}..`. A
   PR behind `main` waits for `gh pr update-branch <branch>`, since the
   protection there is strict.
-- On the homelab VM the agent runs read-only diagnosis and the runbook's
-  written procedures; changes to the host still go through git. `ssh`,
-  `git push` and `gh` need `dangerouslyDisableSandbox: true`.
+- On the homelab VM: what the agent runs there and what stays the
+  operator's is in khe-homelab `AGENTS.md` "Access and operations".
+- A fork PR run on a repo with a homelab runner is approved only after
+  reading its `.github/workflows/` diff (estate ADR-023 point 5; the setting
+  is in `ESTATE.md` "Adding a repo").
 - The operator reads a PR, not its code. The agent writes its title (what
   changes, in words, never the branch name) and a body file in the session
   scratchpad: a `TL;DR` of two to four plain sentences first (what a
@@ -135,10 +135,18 @@ it unasked; a one-off correction goes to memory.
 - A structural change (named library bump, moved files, new decision,
   changed build/test/deploy command, new invariant) updates that repo's
   `AGENTS.md` in the same commit.
-- An estate ADR that becomes Accepted puts its rule into the `AGENTS.md` of
-  every repo whose work it constrains, cited as estate ADR-NNN, one commit
-  per repo in the same piece of work. Agents read that file, not the ADRs,
-  so a decision missing there is unknown to the next session.
+- **Link, don't restate**
+  ([estate ADR-024](https://github.com/khelias/khe-architecture/blob/main/decisions/024-one-source-per-agent-rule.md)).
+  Each rule has one home and every other file cites it: the decision in the
+  estate ADR, workspace-wide agent behaviour here, Claude-harness facts
+  (gate, sandbox, skills) in `CLAUDE.md`, a shared tool's usage in its
+  owning repo's `AGENTS.md` (the design check in khe-ui, VM operations in
+  khe-homelab), repo set-up in `ESTATE.md` "Adding a repo". A repo's
+  `AGENTS.md` holds only what is particular to it, cites the ADR as estate
+  ADR-NNN with a link, and opens with a pointer to this file.
+- An estate ADR that becomes Accepted updates the one home of its rule, and
+  a repo's `AGENTS.md` only where something particular to that repo changes
+  (a path, an exemption, a check, a deviation).
 - In `AGENTS.md` files prefer descriptive facts over prohibitions: "Tailwind
   v3 currently" beats "DO NOT use v4", which goes silently wrong the day v4
   lands. Hard prohibitions stay for security and invariants, with an override
@@ -158,8 +166,8 @@ it unasked; a one-off correction goes to memory.
   is undone by reverting its commit on `main`.
 - Every web app runs `khe-design-lint` from `@khelias/ui` in its lint
   ([estate ADR-021](https://github.com/khelias/khe-architecture/blob/main/decisions/021-family-shell-and-design-check.md)),
-  against a committed baseline that only shrinks. A change that would raise
-  it keeps the line with `design-lint-allow <rule>: <reason>` instead.
+  against a committed baseline that only shrinks; its usage is in khe-ui
+  `AGENTS.md` "The design check".
 - Verification artifacts (screenshots, saved pages, one-off scripts) go to the
   session scratchpad, not into a repo or the workspace root.
 

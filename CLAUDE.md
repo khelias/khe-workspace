@@ -6,56 +6,18 @@
 ## Workflow
 
 Built-ins, plus the custom skills in `.claude/skills/`: the UI ones, scoped
-to the web apps' source, `retro`, and `next`, which reads what `retro` records
-when the operator asks what to do next. Run these without being asked, at
+to the web apps' source, `plan-file` for planning and `/goal` runs, `retro`,
+and `next`, which reads what `retro` records when the operator asks what to
+do next. Run these without being asked, at
 default effort; no `/effort ultracode` or workflows unless the operator asks.
 
-- **Plan** a non-trivial change in plan mode, with each step's check
-  command. Plan files land in `repos/khe-meta/plans/` (`plansDirectory`).
-  The operator does not switch modes: when a task needs a plan, enter plan
-  mode yourself with the `EnterPlanMode` tool rather than planning in chat.
-  The plan's Context lists the decisions it makes, each with its ADR or
-  why it needs none. A decision needs one when it is hard to reverse,
-  picks between real alternatives, and spans two or more repos or decides
-  which repo owns a concern (estate ADR in `khe-architecture/decisions/`),
-  or shapes one repo's architecture (that repo's `docs/adr/` or
-  `docs/decisions/`; khe-homelab's `docs/service-choices.md`). Writing it
-  is a step of the plan, Accepted on the day the operator approves the
-  plan; a changed Accepted decision gets a superseding ADR in the same
-  way. A plan in the area of a Proposed ADR says whether it accepts,
-  changes or leaves it, and why.
-  After writing the plan file and before handing over the `/goal` line,
-  have a subagent without this conversation review it: what does the plan
-  get wrong or leave out that would break the goal or correctness, and
-  which decision it makes lacks its ADR step? Gaps, not style. Verify
-  each finding, fix the plan for the real ones, say which
-  were dropped, and write `**Plan review:** <n> (<d> dropped)` under the
-  plan's Status for `retro`'s Caught line to copy. Plan mode names the file with a random slug and allows no
-  other edits, so after leaving it rename the file (`git mv` once
-  committed) to a descriptive kebab-case name (`n8n-removal.md`) before
-  the `/goal` line names it.
-- **Execute** a written plan through `/goal`, which only the operator can
-  type: end the planning turn with the exact line to paste, a condition
-  provable from output plus a turn cap, e.g. `/goal every step in
-  repos/khe-meta/plans/x.md is checked, an opus subagent comparing the diff
-  to the plan reports no unfixed gaps, grep -c '^## Outcome'
-  repos/khe-meta/plans/x.md prints 1, and npm test exits 0 in the output,
-  or stop after 20 turns`. The Outcome clause makes the retro part of the
-  run. Also offer the same line as a `spawn_task` chip,
-  so one click runs it in a fresh session; whether the chip's prompt runs
-  as the slash command is unverified, so check the new session shows the
-  goal active. Say which model the goal session should run: `sonnet` when
-  every step is mechanical and spelled out, `opus` when steps leave
-  judgement calls. The operator sets it in the new session, since switching
-  models inside a session drops the earlier thinking.
+- **Plan** a non-trivial change in plan mode yourself (`EnterPlanMode`)
+  and load the `plan-file` skill as you enter it; a plan-review subagent is
+  pointed at the skill for the ADR criteria.
+- **Execute** a written plan through the `/goal` line the `plan-file` skill
+  describes.
 - **Check against the plan** at the end of a `/goal` run, before the
-  review: a subagent with `model: opus` compares the diff to the plan file.
-  Every step implemented, the listed edge cases tested, nothing outside the
-  plan's scope changed. The goal evaluator reads only the transcript, so
-  "every step is checked" is the executor's own claim until this passes.
-  It is a clause of the goal condition because as a separate step it
-  gets skipped. Fix the real gaps and say which
-  findings were dropped.
+  review, with the opus subagent the `plan-file` skill describes.
 - **Review** every code change (not docs-only) before committing:
   `/simplify` first, which applies its own fixes for reuse and duplication
   (copied helpers drift apart across repos), then `/code-review` (medium; `high` for risky or public-facing
@@ -139,8 +101,9 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   (gitignored, per machine), not a repo's own. Commands run from the root,
   so paths start with `repos/<name>/`. Serve a static build with
   `python3 -m http.server <port> --directory <path>`.
-- **The Bash sandbox blocks raw TCP.** WebSocket scripts need
-  `dangerouslyDisableSandbox: true`; `curl` and REST do not.
+- **The Bash sandbox blocks raw TCP and the network tools.** WebSocket
+  scripts, `git push`, `gh` and `ssh` need `dangerouslyDisableSandbox:
+  true`; `curl` and REST do not. `docker-vm` resolves only with Tailscale up.
 - **Sandboxed git may not see every ref.** Branches and worktrees made in
   the main checkout, and remote refs such as `origin/main`, can be missing,
   so `@{u}..` prints nothing and ahead reads 0. Run checks of unpushed
@@ -167,6 +130,4 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   `--git-dir`, a `-c push.*` setting, or `HEAD` after a branch switch in the
   same call. It reads the command line only: a git command inside a quoted
   string with spaces (`ssh "..."`, `bash -c '...'`), a script or an alias is
-  not seen, so never commit or push on the VM. `git push`, `gh` and
-  `ssh` need `dangerouslyDisableSandbox: true`; `docker-vm` resolves only
-  with Tailscale up.
+  not seen, so never commit or push on the VM.

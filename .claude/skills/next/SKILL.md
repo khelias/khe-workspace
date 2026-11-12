@@ -109,4 +109,4 @@ leftover files), drift. Blocked items stay out, except the one blocker
 worth clearing.
 
 End by asking which to take. A non-trivial pick goes to plan mode as
-`CLAUDE.md` describes.
+the `plan-file` skill describes.
