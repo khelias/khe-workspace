@@ -49,8 +49,8 @@ instance), the operator runs them from a handover:
   protection there is strict.
 - On the homelab VM: what the agent runs there and what stays the
   operator's is in khe-homelab `AGENTS.md` "Access and operations".
-- A fork PR run on a repo with a homelab runner is approved only after
-  reading its `.github/workflows/` diff (estate ADR-023 point 5; the setting
+- The operator approves a fork PR run on a repo with a homelab runner, and
+  only after reading its `.github/workflows/` diff (estate ADR-023 point 5; the setting
   is in `ESTATE.md` "Adding a repo").
 - The operator reads a PR, not its code. The agent writes its title (what
   changes, in words, never the branch name) and a body file in the session
