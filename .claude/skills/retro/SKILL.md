@@ -33,8 +33,10 @@ Skip when the task had no plan.
   Plan review is copied from the plan's `**Plan review:**` line. `<n>`
   counts findings acted on, `<d>` those dropped; `-` marks a check that
   did not run. `operator` (what the operator's look before the push found)
-  and `push` (pushed unchanged, changed first, or discarded) stay `pending`
-  until the operator says; then update the line in its own khe-meta commit.
+  and `push` (pushed unchanged, changed first, or discarded): when the
+  agent pushed itself (estate ADR-023), they are `operator -` and `push
+  unchanged`; only a push handed over stays `pending` until the operator
+  says, and then the line is updated in its own khe-meta commit.
 - After it, at most about ten lines of prose: what differs from the plan
   and why, what was left out and where it went, review findings that were
   dropped, what was verified only partly. A plan that ran as written says
@@ -71,4 +73,5 @@ one-off corrections.
 
 Commit the plan file by its own path in its own khe-meta commit, each
 roadmap edit in its own repo, and an approved Judgement line in the root.
-Say what still needs pushing.
+Push them where the session allows (root `AGENTS.md`, "Who runs what"),
+else say what still needs pushing.

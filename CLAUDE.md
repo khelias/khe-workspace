@@ -100,7 +100,7 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   transcript blocks a code commit. Another session's dirty files in the
   same tree count too: work in a worktree.
 - **The gate keeps `pr: true` repos off `main`.** In a repo that
-  `repos/repos.yaml` marks `pr: true` (estate ADR-020) it refuses a commit
+  `repos/repos.yaml` marks `pr: true` (estate ADR-023) it refuses a commit
   on `main`, the remote's default branch or a detached HEAD; the handover
   for such a repo is in `AGENTS.md`. It runs before the command, so
   `git switch -c x && git commit` in one call is checked against the old
@@ -145,12 +145,27 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   the main checkout, and remote refs such as `origin/main`, can be missing,
   so `@{u}..` prints nothing and ahead reads 0. Run checks of unpushed
   commits, branches or worktrees with `dangerouslyDisableSandbox: true`.
-- **This machine blocks commands outside this repo's control.**
-  `~/.claude/guardrails/pretooluse-guard.sh` fails the whole Bash command on
-  a recursive `rm`, `git checkout --`, `git reset --hard` and other
-  destructive git, kubectl, helm and docker patterns. User-settings deny
-  rules refuse any `rm`; managed settings deny reading `.env` and `.env.*`
-  (`.example` included), `ssh` and `git push`. Revert with an edit instead,
-  and ask the operator to run anything refused. Deleting config entries and
-  bulk enable/disable scripts are stopped by the auto mode classifier, not a
-  rule, so the outcome varies; inline Python on named entities passes.
+- **What else blocks commands depends on the Claude instance.** In the work
+  account's instance, `~/.claude/guardrails/pretooluse-guard.sh` fails the
+  whole Bash command on a recursive `rm`, `git checkout --`, `git reset
+  --hard` and other destructive git, kubectl, helm and docker patterns;
+  user-settings deny rules refuse any `rm`; managed settings deny reading
+  `.env` and `.env.*` (`.example` included), `ssh` and `git push`, so there
+  the operator pushes from a handover. The personal instance
+  (`CLAUDE_CONFIG_DIR=~/.claude-isiklik`) has none of these: the commit gate
+  is the net, and Boundaries still apply. Revert with an edit instead of a
+  destructive command, and ask the operator to run anything refused.
+  Deleting config entries and bulk enable/disable scripts are stopped by the
+  auto mode classifier, not a rule, so the outcome varies; inline Python on
+  named entities passes.
+- **The gate also checks pushes** (estate ADR-023): it refuses any force
+  push (`--force*`, `-f`, `--mirror`, a `+ref`), a push that moves `main`
+  of a `pr: true` repo (a bare `git push` there from `main` included), a
+  tag push matching a repo's `release_tag:` (khe-ui) and `gh pr merge
+  --admin`, and a push it cannot read: a value from a variable, `GIT_DIR`,
+  `--git-dir`, a `-c push.*` setting, or `HEAD` after a branch switch in the
+  same call. It reads the command line only: a git command inside a quoted
+  string with spaces (`ssh "..."`, `bash -c '...'`), a script or an alias is
+  not seen, so never commit or push on the VM. `git push`, `gh` and
+  `ssh` need `dangerouslyDisableSandbox: true`; `docker-vm` resolves only
+  with Tailscale up.

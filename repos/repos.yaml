@@ -6,7 +6,9 @@
 # repo is scanned (.claude/hooks/pii-rules.toml). The gate blocks commits in a
 # repo inside the workspace that is missing from this list.
 # pr: true takes agent work to main through a pull request whose required
-# checks pass (estate ADR-020): the gate refuses commits on the default branch.
+# checks pass (estate ADR-023): the gate refuses commits on the default branch
+# and pushes that move it.
+# release_tag: a glob; the gate refuses a push of a tag matching it (a release).
 repos:
   - name: khe-meta
     url: https://github.com/khelias/khe-meta.git
@@ -32,6 +34,7 @@ repos:
   - name: khe-ui
     url: https://github.com/khelias/khe-ui.git
     check: npm run -s check
+    release_tag: v*
     description: Shared UI packages for the apps, published to npm as @khelias/ui.
   - name: khe-study
     url: https://github.com/khelias/khe-study.git

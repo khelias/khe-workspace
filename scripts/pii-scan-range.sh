@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Scan the commits in <base>..<head> of the repo in the current directory for
-# personal data, with the rules the local commit gate uses (estate ADR-020).
+# personal data, with the rules the local commit gate uses (estate ADR-023).
 #
 #   scripts/pii-scan-range.sh <base> <head> [rules]
 #

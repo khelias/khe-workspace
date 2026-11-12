@@ -18,38 +18,48 @@ conventions of one repo live in `repos/<name>/AGENTS.md`.
 
 ## Who runs what
 
-The agent prepares, the operator executes anything that leaves this machine or
-touches a running host:
+The agent runs the whole loop, push and homelab commands included, where its
+session allows it
+([estate ADR-023](https://github.com/khelias/khe-architecture/blob/main/decisions/023-agent-pushes-where-its-session-allows.md));
+where the session refuses `git push` or `ssh` (the work account's Claude
+instance), the operator runs them from a handover:
 
-- `git push`, `ssh`, and any command against the homelab VM are the operator's.
-  Hand them over once, when the work is done, as one copy-pasteable block
-  chained with `&&` in the order they must run, cleanup included, so a
-  failure stops the rest. Split the block only where a step needs checking
-  before the next. A half-given chain costs a round trip.
-- Commit locally as normal. Say plainly what still needs pushing. Right
-  before handing over a push, `git fetch` that repo and confirm the branch is
-  not behind its upstream, then list `git log --oneline @{u}..` and name any
-  commit this session did not make: the push ships them too, and so does
-  anything another session commits there before the operator runs it.
+- The agent pushes, opens the PR, turns on auto-merge and runs
+  `ssh khe@docker-vm "..."` itself. A handover, where needed, comes once,
+  when the work is done, as one copy-pasteable block chained with `&&` in
+  the order it must run, cleanup included, so a failure stops the rest.
+  Split it only where a step needs checking before the next.
+- Kept with the operator in every session: a push that would ship commits
+  this session did not make, a diff under `.github/workflows/`, a `v*` tag
+  in khe-ui (it publishes to npm), fetching secrets, and the destructive
+  operations under Boundaries. The commit gate refuses force pushes, a push
+  to `main` of a `pr: true` repo, a khe-ui tag push and `gh pr merge
+  --admin`.
+- Commit locally as normal. Right before a push, `git fetch` that repo and
+  confirm the branch is not behind its upstream, then list `git log
+  --oneline @{u}..` and stop on any commit this session did not make: the
+  push would ship it too. Say in the report what was pushed and where.
 - In a repo marked `pr: true` in `repos/repos.yaml`, agent work reaches
-  `main` through a pull request whose required checks pass
-  ([estate ADR-020](https://github.com/khelias/khe-architecture/blob/main/decisions/020-agent-work-through-pull-requests.md)):
-  commit on a branch, and hand over `cd <absolute repo path> && git fetch &&
+  `main` through a pull request whose required checks pass: commit on a
+  branch, then `cd <absolute repo path> && git fetch &&
   git log --oneline origin/main..<branch> && git push -u origin <branch> &&
   gh pr create --head <branch> --title "<title>" --body-file <body file> &&
   gh pr merge <branch> --auto --merge`.
   The check before it reads `origin/main..<branch>` instead of `@{u}..`. A
   PR behind `main` waits for `gh pr update-branch <branch>`, since the
   protection there is strict.
+- On the homelab VM the agent runs read-only diagnosis and the runbook's
+  written procedures; changes to the host still go through git. `ssh`,
+  `git push` and `gh` need `dangerouslyDisableSandbox: true`.
 - The operator reads a PR, not its code. The agent writes its title (what
   changes, in words, never the branch name) and a body file in the session
   scratchpad: a `TL;DR` of two to four plain sentences first (what a
   visitor or the operator will notice, what could go wrong, how to undo
   it), then the checks that ran and the estate ADR it follows. No code,
   no file lists, no private khe-meta links: the PR is public. The same
-  TL;DR, in Estonian, goes in the handover message above the command.
-- Ask clarifying questions before writing, not after the operator has pushed
-  a first draft: every iteration costs them a push.
+  TL;DR, in Estonian, goes in the agent's report with the PR link.
+- Ask clarifying questions before writing, not after a first draft has
+  shipped: every iteration costs a deploy.
 - Read-only APIs (Home Assistant, GitHub) the agent uses directly.
 
 ## Where the estate is described

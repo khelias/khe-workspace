@@ -11,9 +11,11 @@
 # KHE_REVIEW_SKIP="<reason>" skips only that check. In a repo marked
 # `pr: true` it first refuses a commit on the default branch or a detached
 # HEAD, since agent work reaches main there through a pull request (estate
-# ADR-020); KHE_PR_SKIP="<reason>" skips only that rule, and both skips may
+# ADR-023); KHE_PR_SKIP="<reason>" skips only that rule, and both skips may
 # prefix one commit. It also refuses `git add -A/./-u` and `git commit -a`
-# in any call. Other Bash calls pass
+# in any call, and the pushes estate ADR-023 keeps from the agent: any force
+# push, a push to the default branch of a `pr: true` repo, a release tag push
+# (`release_tag:` in repos.yaml) and `gh pr merge --admin`. Other Bash calls pass
 # through untouched, so a passing commit costs no tokens. The hook is
 # registered with onFailure "block", so an error in this script blocks every
 # Bash call: it runs under /bin/bash 3.2.
@@ -23,15 +25,15 @@ input="$(cat)"
 cmd="$(jq -r '.tool_input.command // empty' <<<"$input")"
 cwd="$(jq -r '.cwd // empty' <<<"$input")"
 root="${CLAUDE_PROJECT_DIR:-$cwd}"
-git_core='git(([[:space:]]+-[Cc][[:space:]]+[^[:space:]]+)*)[[:space:]]+'
-git_re="(^|[;&|([:space:]/])${git_core}"
+git_core='git(([[:space:]]+(-[Cc][[:space:]]+[^[:space:]]+|-[A-Za-z]|--[A-Za-z][-A-Za-z]*(=[^[:space:]]+)?))*)[[:space:]]+'
+git_re="(^|[;&|(\`[:space:]/])${git_core}"
 
 # Matching runs on one line with heredoc bodies dropped and every quoted string
 # that holds a space replaced by Q: a message or PR body that mentions a git
 # command must neither trigger nor block anything. Quoted paths keep their text.
 scan="$(awk '
     skip { t = $0; gsub(/^[[:space:]]+|[[:space:]]+$/, "", t); if (t == delim) skip = 0; next }
-    { printf "%s;", $0 }
+    { if (sub(/\\$/, "")) printf "%s ", $0; else printf "%s;", $0 }
     match($0, /(^|[^<])<<-?[[:space:]]*["\047]?[A-Za-z_][A-Za-z0-9_]*/) {
         delim = substr($0, RSTART, RLENGTH); sub(/^[^<]?<<-?[[:space:]]*["\047]?/, "", delim); skip = 1
     }' <<<"$cmd" | awk '{
@@ -46,7 +48,8 @@ scan="$(awk '
     print out (q == "" ? "" : "Q")
 }')"
 
-fail() { echo "commit-gate: $1; commit blocked." >&2; exit 2; }
+action=commit
+fail() { echo "commit-gate: $1; $action blocked." >&2; exit 2; }
 
 # Parallel sessions share each repo's working tree, so staging everything
 # sweeps another session's files into this commit. Stage by path.
@@ -56,9 +59,6 @@ if [[ "$scan" =~ $sweep_add || "$scan" =~ $sweep_commit ]]; then
     echo "commit-gate: 'git add -A/./-u' and 'git commit -a' stage files other sessions may be editing; blocked. Stage the files you changed by path." >&2
     exit 2
 fi
-
-commit_re="${git_re}commit([[:space:]]|;|\$)"
-[[ "$scan" =~ $commit_re ]] || exit 0
 
 # git@host:owner/repo, ssh://git@host/owner/repo.git and https://host/owner/repo
 # all become host/owner/repo.
@@ -70,14 +70,85 @@ norm_url() {
 
 unquote() { local v="$1"; v="${v%\"}"; v="${v#\"}"; v="${v%\'}"; v="${v#\'}"; printf '%s' "$v"; }
 
-# The hook runs before the command, so a file force-added in the same call is
-# still ignored and invisible to the scan below.
-add_re="${git_re}add[[:space:]]([^;&|]*[[:space:]])?(-f|--force|-[A-Za-z]*f[A-Za-z]*)([[:space:]]|;|\$)"
-[[ "$scan" =~ $add_re ]] &&
-    fail "a same-call 'git add --force' cannot be scanned. Run the add as its own command first, then commit"
+# Sets common, top, name, label, branch and default for the repo at $1.
+# Returns 1 for a repo outside the workspace, which no rule here covers.
+repo_of() {
+    local dir="$1"
+    # A worktree's common dir is still repos/<name>/.git, which names the repo;
+    # the root repo's common dir is the same from any of its worktrees.
+    # A directory the hook cannot resolve (a shell variable, a path that does not
+    # exist, a cd it cannot follow) must not pass unchecked.
+    common="$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" &&
+        top="$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)" ||
+        fail "cannot tell which repo '$dir' is. Run one repo per command, as 'git -C <absolute path> $action'"
+    root_common="$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
+    # A desktop worktree of the root has no clones in its repos/, so a repo
+    # worktree made from it keeps its common dir in the main checkout's repos/.
+    local ws=("$(cd "$root" 2>/dev/null && pwd -P || printf '%s' "$root")") w u r p
+    [[ "$root_common" == */.git ]] && ws+=("${root_common%/.git}")
 
-# Each commit's directory: its `git -C <dir>`, else the last `cd <dir>` before
-# it, else cwd. A command may commit in several repos; each one is gated.
+    # Name the repo whose common dir is $1, only if repos.yaml lists it.
+    by_common() {
+        local w n
+        [[ -n "$root_common" && "$1" == "$root_common" ]] && { printf 'khe'; return; }
+        for w in "${ws[@]}"; do
+            n="${1#"$w"/repos/}"; n="${n%/.git}"
+            [[ "$1" == "$w/repos/$n/.git" && "$n" != */* ]] || continue
+            awk -v want="$n" '/^[[:space:]]*- name:/ { sub(/.*name:[[:space:]]*/, ""); if ($0 == want) f = 1 }
+                END { exit !f }' "$root/repos/repos.yaml" 2>/dev/null && printf '%s' "$n"
+            return
+        done
+    }
+    by_url() {
+        local want n yurl
+        want="$(norm_url "$1")"
+        while IFS=$'\t' read -r n yurl; do
+            [[ "$(norm_url "$yurl")" == "$want" ]] && { printf '%s' "$n"; return; }
+        done < <(awk '
+            /^[[:space:]]*- name:/ { sub(/.*name:[[:space:]]*/, ""); cur = $0; next }
+            /^[[:space:]]*url:/ { sub(/^[^:]*:[[:space:]]*/, ""); sub(/[[:space:]]+$/, ""); print cur "\t" $0 }
+        ' "$root/repos/repos.yaml" 2>/dev/null)
+    }
+
+    name="$(by_common "$common")"
+    # A clone elsewhere is still that repo if a remote is its URL or its checkout.
+    if [[ -z "$name" ]]; then
+        while read -r u; do
+            u="${u#file://}"
+            # git stores a hand-added relative remote as typed, relative to the repo.
+            p="$u"; [[ "$p" = /* ]] || p="$top/$p"
+            if [[ -d "$p" ]]; then
+                r="$(git -C "$p" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" &&
+                    name="$(by_common "$r")"
+            else
+                name="$(by_url "$u")"
+            fi
+            [[ -n "$name" ]] && break
+        done < <(git -C "$top" remote -v 2>/dev/null | awk '{ print $2 }' | sort -u)
+    fi
+    # Anything else inside the workspace (a nested repo, one missing from
+    # repos.yaml) fails closed; repos elsewhere, such as scratch repos, pass.
+    if [[ -z "$name" ]]; then
+        for w in "${ws[@]}"; do
+            [[ "$top/" == "$w/"* || "$common" == "$w/"* ]] &&
+                fail "'$top' is inside the workspace but is neither the root nor a repo listed in repos/repos.yaml"
+        done
+        return 1
+    fi
+    label="repos/$name"
+    [[ "$name" == khe ]] && label="the workspace root"
+
+    yaml_key() {
+        awk -v want="$name" -v key="$1" '
+            /^[[:space:]]*- name:/ { sub(/.*name:[[:space:]]*/, ""); cur = $0; next }
+            $0 ~ "^[[:space:]]*" key ":" && cur == want { sub(/^[^:]*:[[:space:]]*/, ""); sub(/[[:space:]]+$/, ""); print; exit }
+        ' "$root/repos/repos.yaml" 2>/dev/null
+    }
+    branch="$(git -C "$top" symbolic-ref -q --short HEAD)"
+    default="$(git -C "$top" symbolic-ref -q --short refs/remotes/origin/HEAD)"
+    default="${default#origin/}"
+}
+
 resolve() {
     local d
     d="$(unquote "$1")"
@@ -85,22 +156,138 @@ resolve() {
     [[ "$d" = /* ]] || d="$2/$d"
     printf '%s' "$d"
 }
-cd_re='(^|[;&|([:space:]])cd[[:space:]]+([^[:space:];&|)]+)'
-dir="$cwd"
-dirs=()
-rest="$scan"
-while [[ "$rest" =~ $commit_re ]]; do
-    m="${BASH_REMATCH[0]}" flags="${BASH_REMATCH[2]}"
-    pre="${rest%%"$m"*}"
-    while [[ "$pre" =~ $cd_re ]]; do
-        dir="$(resolve "${BASH_REMATCH[2]}" "$dir")"
-        pre="${pre#*"${BASH_REMATCH[0]}"}"
+# main is the fallback for a clone whose origin/HEAD is not set.
+is_default() { [[ "$1" == main || ( -n "$default" && "$1" == "$default" ) ]]; }
+
+# Each match's directory: its `git -C <dir>`, else the last `cd <dir>` before
+# it, else cwd. A command may run git in several repos; each one is checked.
+# args gets each match's arguments, up to the next ; & or |.
+cd_re='(^|[;&|([:space:]])(cd|pushd)[[:space:]]+([^[:space:];&|)]+)'
+walk() {
+    local re="$1" rest="$scan" dir="$cwd" m flags pre d
+    dirs=() args=() gflags=()
+    while [[ "$rest" =~ $re ]]; do
+        m="${BASH_REMATCH[0]}" flags="${BASH_REMATCH[2]}"
+        gflags+=("$flags")
+        pre="${rest%%"$m"*}"
+        while [[ "$pre" =~ $cd_re ]]; do
+            dir="$(resolve "${BASH_REMATCH[3]}" "$dir")"
+            pre="${pre#*"${BASH_REMATCH[0]}"}"
+        done
+        d="$dir"
+        # git applies each -C relative to the one before it.
+        while [[ "$flags" =~ -C[[:space:]]+([^[:space:]]+) ]]; do
+            d="$(resolve "${BASH_REMATCH[1]}" "$d")"
+            flags="${flags#*"${BASH_REMATCH[0]}"}"
+        done
+        dirs+=("$d")
+        rest="${rest#*"$m"}"
+        case "$m" in *';') args+=("") ;; *) args+=("${rest%%[;&|]*}") ;; esac
     done
-    d="$dir"
-    [[ "$flags" =~ -C[[:space:]]+([^[:space:]]+) ]] && d="$(resolve "${BASH_REMATCH[1]}" "$dir")"
-    dirs+=("$d")
-    rest="${rest#*"$m"}"
-done
+}
+
+# Estate ADR-023: the agent pushes its own work, inside an envelope enforced
+# here. Branch rules stop a force push to a public default branch anyway; this
+# also covers private repos and branches, and says why before GitHub does.
+refuse() { action="${2:-push}"; fail "$1. Estate ADR-023 keeps this with the operator: hand the command over"; }
+admin_re="(^|[;&|(\`[:space:]/])gh[[:space:]]+([^;&|]*[[:space:]])?pr[[:space:]]+([^;&|]*[[:space:]])?merge([[:space:]][^;&|]*)?[[:space:]][\"']?--admin([[:space:]=;\"']|\$)"
+[[ "$scan" =~ $admin_re ]] && refuse "'gh pr merge --admin' merges past the required checks" merge
+
+switch_re="${git_re}(switch|checkout)([[:space:]]|;|\$)"
+gitdir_flag_re='--(git-dir|work-tree)'
+gitdir_env_re='(^|[;&|([:space:]])GIT_(DIR|WORK_TREE)='
+push_config_re="-c[[:space:]]+[\"']?(push\\.|remote\\.[^[:space:]=]*\\.(push|mirror))"
+# git takes any unique prefix of a long option, so these match by prefix.
+push_check() {
+    local t remote= skip= all= tags= ref dst pattern pr
+    local refs=() toks=()
+    [[ "$3" =~ $gitdir_flag_re ]] && refuse "a push with --git-dir or --work-tree cannot be tied to its repo"
+    [[ "$3" =~ $push_config_re ]] &&
+        refuse "a push with '-c push.*' or a remote's push or mirror setting changes what it pushes"
+    read -r -a toks <<<"$2"
+    for t in ${toks[@]+"${toks[@]}"}; do
+        # The shell drops quotes and backslashes inside a word before git sees it.
+        t="${t//\\/}"; t="${t//\"/}"; t="${t//\'/}"
+        if [[ -n "$skip" ]]; then skip=; continue; fi
+        [[ "$t" == *[\$\`]* ]] && refuse "'$t' comes from a variable, so the push cannot be checked; write it out"
+        case "$t" in
+            --forc* | --mi*) refuse "'$t' rewrites the remote" ;;
+            --al* | --br*) all=1 ;;
+            --ta* | --fol*) tags=1 ;;
+            --push-option | --repo | --receive-pack | --exec | -o) skip=1 ;;
+            --* | -o*) ;;
+            -*f*) refuse "'$t' is a force push" ;;
+            -*) ;;
+            +*) refuse "'$t' is a force push of that ref" ;;
+            # A redirection is not an argument; one with its target apart
+            # takes the next word too.
+            [0-9]*[\<\>]* | [\<\>]*) [[ "$t" == *[\<\>] ]] && skip=1 ;;
+            *)
+                t="${t%%[<>]*}"
+                if [[ -z "$remote" ]]; then remote="$t"; else refs+=("$t"); fi
+                ;;
+        esac
+    done
+    repo_of "$1" || return 0
+    pr="$(yaml_key pr)"
+    # release_tag in repos.yaml: a tag push matching it publishes a release.
+    pattern="$(yaml_key release_tag)"
+    if [[ "$pr" == "true" || -n "$pattern" ]]; then
+        for ref in ${refs[@]+"${refs[@]}"}; do
+            [[ "$ref" == *'*'* ]] && refuse "the wildcard refspec '$ref' in $label can move its default branch or push a release tag"
+        done
+    fi
+    if [[ -n "$pattern" ]]; then
+        [[ -n "$tags" ]] && refuse "a tag push in $label can publish a release"
+        for ref in ${refs[@]+"${refs[@]}"}; do
+            ref="${ref#*:}"; ref="${ref#refs/}"; ref="${ref#tags/}"
+            # shellcheck disable=SC2053 # the pattern is a glob on purpose
+            [[ "$ref" == $pattern ]] && refuse "pushing '$ref' in $label publishes a release"
+        done
+    fi
+    [[ "$pr" == "true" ]] || return 0
+    [[ -n "$all" ]] && refuse "'--all' in $label would push its default branch, which takes a pull request"
+    [[ ${#refs[@]} -eq 0 ]] && refs=(HEAD)
+    for ref in "${refs[@]}"; do
+        dst="${ref#*:}"
+        if [[ "$dst" == HEAD || "$dst" == @ ]]; then
+            # The branch is read before the command runs, so a switch in the
+            # same call would leave it stale.
+            [[ "$scan" =~ $switch_re ]] &&
+                refuse "a push of HEAD in $label after a branch switch in the same call cannot be checked; name the branch"
+            dst="$branch"
+        fi
+        dst="${dst#refs/}"; dst="${dst#heads/}"
+        is_default "$dst" &&
+            refuse "this push would move ${dst} in $label, which takes agent work through a pull request. Push a branch and open one"
+    done
+    return 0
+}
+
+push_re="${git_re}push([[:space:]]|;|\$)"
+if [[ "$scan" =~ $push_re ]]; then
+    action=push
+    [[ "$scan" =~ $gitdir_env_re ]] &&
+        refuse "a push with GIT_DIR or GIT_WORK_TREE set cannot be tied to its repo"
+    walk "$push_re"
+    i=0
+    while [[ $i -lt ${#dirs[@]} ]]; do
+        push_check "${dirs[$i]}" "${args[$i]}" "${gflags[$i]}"
+        i=$((i + 1))
+    done
+    action=commit
+fi
+
+commit_re="${git_re}commit([[:space:]]|;|\$)"
+[[ "$scan" =~ $commit_re ]] || exit 0
+
+# The hook runs before the command, so a file force-added in the same call is
+# still ignored and invisible to the scan below.
+add_re="${git_re}add[[:space:]]([^;&|]*[[:space:]])?(-f|--force|-[A-Za-z]*f[A-Za-z]*)([[:space:]]|;|\$)"
+[[ "$scan" =~ $add_re ]] &&
+    fail "a same-call 'git add --force' cannot be scanned. Run the add as its own command first, then commit"
+
+walk "$commit_re"
 
 # A deliberate skip must prefix the commit itself, alone or beside the other
 # skip in either order; on $scan a message or heredoc that mentions the
@@ -156,88 +343,15 @@ trap 'rm -r -f -- "$tmp_root"' EXIT
 
 gate() {
     local dir="$1"
-    # A worktree's common dir is still repos/<name>/.git, which names the repo;
-    # the root repo's common dir is the same from any of its worktrees.
-    # A directory the hook cannot resolve (a shell variable, a path that does not
-    # exist, a cd it cannot follow) must not pass unchecked.
-    common="$(git -C "$dir" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" &&
-        top="$(git -C "$dir" rev-parse --show-toplevel 2>/dev/null)" ||
-        fail "cannot tell which repo '$dir' is. Commit one repo per command, as 'git -C <absolute path> commit'"
-    root_common="$(git -C "$root" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)"
-    # A desktop worktree of the root has no clones in its repos/, so a repo
-    # worktree made from it keeps its common dir in the main checkout's repos/.
-    local ws=("$(cd "$root" 2>/dev/null && pwd -P || printf '%s' "$root")") w u r p
-    [[ "$root_common" == */.git ]] && ws+=("${root_common%/.git}")
+    repo_of "$dir" || return 0
 
-    # Name the repo whose common dir is $1, only if repos.yaml lists it.
-    by_common() {
-        local w n
-        [[ -n "$root_common" && "$1" == "$root_common" ]] && { printf 'khe'; return; }
-        for w in "${ws[@]}"; do
-            n="${1#"$w"/repos/}"; n="${n%/.git}"
-            [[ "$1" == "$w/repos/$n/.git" && "$n" != */* ]] || continue
-            awk -v want="$n" '/^[[:space:]]*- name:/ { sub(/.*name:[[:space:]]*/, ""); if ($0 == want) f = 1 }
-                END { exit !f }' "$root/repos/repos.yaml" 2>/dev/null && printf '%s' "$n"
-            return
-        done
-    }
-    by_url() {
-        local want n yurl
-        want="$(norm_url "$1")"
-        while IFS=$'\t' read -r n yurl; do
-            [[ "$(norm_url "$yurl")" == "$want" ]] && { printf '%s' "$n"; return; }
-        done < <(awk '
-            /^[[:space:]]*- name:/ { sub(/.*name:[[:space:]]*/, ""); cur = $0; next }
-            /^[[:space:]]*url:/ { sub(/^[^:]*:[[:space:]]*/, ""); sub(/[[:space:]]+$/, ""); print cur "\t" $0 }
-        ' "$root/repos/repos.yaml" 2>/dev/null)
-    }
-
-    name="$(by_common "$common")"
-    # A clone elsewhere is still that repo if a remote is its URL or its checkout.
-    if [[ -z "$name" ]]; then
-        while read -r u; do
-            u="${u#file://}"
-            # git stores a hand-added relative remote as typed, relative to the repo.
-            p="$u"; [[ "$p" = /* ]] || p="$top/$p"
-            if [[ -d "$p" ]]; then
-                r="$(git -C "$p" rev-parse --path-format=absolute --git-common-dir 2>/dev/null)" &&
-                    name="$(by_common "$r")"
-            else
-                name="$(by_url "$u")"
-            fi
-            [[ -n "$name" ]] && break
-        done < <(git -C "$top" remote -v 2>/dev/null | awk '{ print $2 }' | sort -u)
-    fi
-    # Anything else inside the workspace (a nested repo, one missing from
-    # repos.yaml) fails closed; repos elsewhere, such as scratch repos, pass.
-    if [[ -z "$name" ]]; then
-        for w in "${ws[@]}"; do
-            [[ "$top/" == "$w/"* || "$common" == "$w/"* ]] &&
-                fail "'$top' is inside the workspace but is neither the root nor a repo listed in repos/repos.yaml"
-        done
-        return 0
-    fi
-    label="repos/$name"
-    [[ "$name" == khe ]] && label="the workspace root"
-
-    yaml_key() {
-        awk -v want="$name" -v key="$1" '
-            /^[[:space:]]*- name:/ { sub(/.*name:[[:space:]]*/, ""); cur = $0; next }
-            $0 ~ "^[[:space:]]*" key ":" && cur == want { sub(/^[^:]*:[[:space:]]*/, ""); sub(/[[:space:]]+$/, ""); print; exit }
-        ' "$root/repos/repos.yaml" 2>/dev/null
-    }
-
-    # Estate ADR-020: in a `pr: true` repo agent work reaches main through a
+    # Estate ADR-023: in a `pr: true` repo agent work reaches main through a
     # pull request, so a commit goes on a branch. The hook runs before the
     # command, so a `git switch -c` in the same call has not happened yet.
     if [[ "$(yaml_key pr)" == "true" ]]; then
-        local branch default
-        branch="$(git -C "$top" symbolic-ref -q --short HEAD)"
-        default="$(git -C "$top" symbolic-ref -q --short refs/remotes/origin/HEAD)"
-        default="${default#origin/}"
-        if [[ -z "$branch" || "$branch" == main || "$branch" == "$default" ]]; then
+        if [[ -z "$branch" ]] || is_default "$branch"; then
             [[ -n "$pr_skip" ]] ||
-                fail "$label takes agent work through a pull request (estate ADR-020) and this commit would land on ${branch:-a detached HEAD}. Run 'git switch -c <branch>' as a command of its own first: a switch in the same call runs after this check. For an emergency, prefix the commit with KHE_PR_SKIP=\"<reason>\" and tell the operator why"
+                fail "$label takes agent work through a pull request (estate ADR-023) and this commit would land on ${branch:-a detached HEAD}. Run 'git switch -c <branch>' as a command of its own first: a switch in the same call runs after this check. For an emergency, prefix the commit with KHE_PR_SKIP=\"<reason>\" and tell the operator why"
             pr_skipped+=("$label ${branch:-detached HEAD}")
         fi
     fi

@@ -40,9 +40,11 @@ git fetch --quiet && git log --oneline @{u}..
   session's, so say so rather than call it abandoned.
 - A Renovate PR is held for review once its CI is green and it is more than
   a day old. A failed CI on a PR or on `main` is an item of its own.
-- A push, a merge of a `khe-homelab` PR (it deploys to the running host)
-  and anything on the VM are the operator's: offer them as `AGENTS.md`
-  describes under "Who runs what".
+- A push, a PR merge and VM diagnosis are the agent's where its session
+  allows (estate ADR-023): list them as work, not as the operator's. Offer
+  the operator only what `AGENTS.md` "Who runs what" keeps with them (a
+  foreign commit in the push, a workflow diff, a khe-ui tag, secrets,
+  destructive commands), or every push where the session refuses it.
 
 Plans in `repos/khe-meta/plans/`: open `- [ ]` steps, or a Status line (in
 any of its forms) that is not done. A plan with no Status, no Outcome and
