@@ -101,8 +101,8 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   same tree count too: work in a worktree.
 - **The gate keeps `pr: true` repos off `main`.** In a repo that
   `repos/repos.yaml` marks `pr: true` (estate ADR-023) it refuses a commit
-  on `main`, the remote's default branch or a detached HEAD; the handover
-  for such a repo is in `AGENTS.md`. It runs before the command, so
+  on `main`, the remote's default branch or a detached HEAD; the push
+  and PR for such a repo are in `AGENTS.md`. It runs before the command, so
   `git switch -c x && git commit` in one call is checked against the old
   branch: run the switch as a command of its own first.
   `KHE_PR_SKIP="<reason>" git commit ...` skips only this rule, for an
@@ -159,8 +159,9 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   auto mode classifier, not a rule, so the outcome varies; inline Python on
   named entities passes.
 - **The gate also checks pushes** (estate ADR-023): it refuses any force
-  push (`--force*`, `-f`, `--mirror`, a `+ref`), a push that moves `main`
-  of a `pr: true` repo (a bare `git push` there from `main` included), a
+  push (`--force*`, `-f`, `--mirror`, a `+ref`), deleting `main` or
+  `--prune` in any repo, a push that moves `main` of a `pr: true` repo (a
+  bare `git push` there from `main` included), a
   tag push matching a repo's `release_tag:` (khe-ui) and `gh pr merge
   --admin`, and a push it cannot read: a value from a variable, `GIT_DIR`,
   `--git-dir`, a `-c push.*` setting, or `HEAD` after a branch switch in the

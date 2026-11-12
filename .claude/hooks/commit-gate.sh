@@ -199,7 +199,7 @@ gitdir_env_re='(^|[;&|([:space:]])GIT_(DIR|WORK_TREE)='
 push_config_re="-c[[:space:]]+[\"']?(push\\.|remote\\.[^[:space:]=]*\\.(push|mirror))"
 # git takes any unique prefix of a long option, so these match by prefix.
 push_check() {
-    local t remote= skip= all= tags= ref dst pattern pr
+    local t remote= skip= all= tags= del= ref dst pattern pr
     local refs=() toks=()
     [[ "$3" =~ $gitdir_flag_re ]] && refuse "a push with --git-dir or --work-tree cannot be tied to its repo"
     [[ "$3" =~ $push_config_re ]] &&
@@ -214,9 +214,12 @@ push_check() {
             --forc* | --mi*) refuse "'$t' rewrites the remote" ;;
             --al* | --br*) all=1 ;;
             --ta* | --fol*) tags=1 ;;
+            --de*) del=1 ;;
+            --pr*) refuse "'$t' deletes remote branches that are gone locally" ;;
             --push-option | --repo | --receive-pack | --exec | -o) skip=1 ;;
             --* | -o*) ;;
             -*f*) refuse "'$t' is a force push" ;;
+            -*d*) del=1 ;;
             -*) ;;
             +*) refuse "'$t' is a force push of that ref" ;;
             # A redirection is not an argument; one with its target apart
@@ -229,6 +232,12 @@ push_check() {
         esac
     done
     repo_of "$1" || return 0
+    # Private repos have no branch rules, so deleting main is stopped here.
+    for ref in ${refs[@]+"${refs[@]}"}; do
+        [[ -n "$del" || "$ref" == :* ]] || continue
+        dst="${ref#*:}"; dst="${dst#refs/}"; dst="${dst#heads/}"
+        is_default "$dst" && refuse "this push would delete ${dst} in $label"
+    done
     pr="$(yaml_key pr)"
     # release_tag in repos.yaml: a tag push matching it publishes a release.
     pattern="$(yaml_key release_tag)"

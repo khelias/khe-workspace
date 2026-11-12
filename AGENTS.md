@@ -33,8 +33,9 @@ instance), the operator runs them from a handover:
   this session did not make, a diff under `.github/workflows/`, a `v*` tag
   in khe-ui (it publishes to npm), fetching secrets, and the destructive
   operations under Boundaries. The commit gate refuses force pushes, a push
-  to `main` of a `pr: true` repo, a khe-ui tag push and `gh pr merge
-  --admin`.
+  to `main` of a `pr: true` repo, deleting `main` anywhere, a khe-ui tag
+  push, `gh pr merge --admin` and a push it cannot read (a variable,
+  `GIT_DIR`).
 - Commit locally as normal. Right before a push, `git fetch` that repo and
   confirm the branch is not behind its upstream, then list `git log
   --oneline @{u}..` and stop on any commit this session did not make: the
