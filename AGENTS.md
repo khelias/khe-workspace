@@ -117,6 +117,10 @@ it unasked; a one-off correction goes to memory.
   shortcut, check whether what it repeats sits right below it; a second block
   for the same day or the same list is the repetition the operator keeps
   removing.
+- **Research before the first answer.** For advice, a tool or a setup change,
+  search the web across several current sources before answering or changing
+  anything, and look at the whole picture, not only the slice asked about. A
+  change made on what the agent already knew is the one that gets undone.
 
 ## Code and docs
 
