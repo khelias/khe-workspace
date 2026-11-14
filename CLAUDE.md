@@ -126,12 +126,21 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   ([khe-homelab `infrastructure/agent-vm.md`](https://github.com/khelias/khe-homelab/blob/main/infrastructure/agent-vm.md)).
   There the config dir is the default `~/.claude`, bash is 5 with gawk and
   upstream gitleaks, the gate runs unchanged (its push cases checked there
-  2026-11-14) and there is no Bash sandbox. Sessions start in auto mode and
-  every `ssh` asks the operator, so a docker-vm command waits for a tap on
-  the phone. There is no browser pane and no Claude in Chrome: Playwright's
-  Chromium is in `~/.cache/ms-playwright`, used from a repo that has
-  Playwright (`npx playwright screenshot --viewport-size=375,812 <url>
-  <file>.png`, then read the image).
+  2026-11-14) and Bash runs in a strict sandbox (estate ADR-027): no
+  `dangerouslyDisableSandbox` retry, outbound to GitHub, npm, PyPI,
+  Anthropic and Debian only, `~/.ssh` and `~/.config/khe` unreadable; git,
+  `git push` and `gh` work inside it. Sessions start in auto mode; `ssh`,
+  `scp` and the HA scripts run outside the sandbox only when the call holds
+  that one command (no `cd`, pipe or redirect), and each asks the operator,
+  so a docker-vm command or an HA write waits for a tap on the phone. The HA
+  scripts run as `/home/khe/khe/repos/khe-home-assistant/.venv/bin/python
+  scripts/ha-ws.py '<json>'` from the checkout. There is no browser pane and
+  no Claude in Chrome: Playwright's Chromium is in `~/.cache/ms-playwright`,
+  used from a repo that has Playwright, with the static server in the same
+  call because a sandboxed command's localhost is its own (the command is
+  in khe-homelab `infrastructure/agent-vm.md` "Sandbox"), then read the
+  image. Jobs that run without the operator are GitHub-hosted Actions, never
+  agent-vm: the weekly digest in khe-homelab first.
   Its memory folder is keyed by the VM's workspace path, not the laptop's.
   Parallel sessions there use `repos/<name>` worktrees as above. Projects is
   not on the account yet (2026-11-14); once it is, a claude.ai Projects task
