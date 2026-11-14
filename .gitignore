@@ -9,6 +9,9 @@
 *.local.json
 .claude/launch.json
 
+# Desktop worktrees of the workspace root
+.claude/worktrees/
+
 # Tool output
 .playwright-mcp/
 

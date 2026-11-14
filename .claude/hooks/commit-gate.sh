@@ -420,7 +420,7 @@ gate() {
     if [[ -n "$scanned" ]]; then
         rules="$root/.claude/hooks/pii-rules.toml"
         command -v gitleaks >/dev/null ||
-            fail "gitleaks is not installed, so the personal-data scan cannot run. Install it with 'brew install gitleaks'"
+            fail "gitleaks is not installed, so the personal-data scan cannot run. Install it with 'brew install gitleaks' or, on Linux, from the upstream release at https://github.com/gitleaks/gitleaks/releases"
         [[ -f "$rules" ]] || fail "$rules is missing"
 
         # File names come from the NUL-separated list in $2, not the diff headers,

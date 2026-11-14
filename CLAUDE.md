@@ -121,6 +121,17 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   Deleting config entries and bulk enable/disable scripts are stopped by the
   auto mode classifier, not a rule, so the outcome varies; inline Python on
   named entities passes.
+- **The personal instance also runs on agent-vm**, a Debian VM with the
+  workspace cloned to `~/khe`
+  ([khe-homelab `infrastructure/agent-vm.md`](https://github.com/khelias/khe-homelab/blob/main/infrastructure/agent-vm.md)).
+  There the config dir is the default `~/.claude`, bash is 5 with gawk and
+  upstream gitleaks, the gate runs unchanged and there is no Bash sandbox.
+  Its memory folder is keyed by the VM's workspace path, not the laptop's.
+  Parallel sessions there use `repos/<name>` worktrees as above. A claude.ai
+  Projects task runs there only as a local thread: a cloud thread reads just
+  `CLAUDE.md`, so it has no gate and no skills, and the project's
+  instructions (`projects/khe-instructions.md`) forbid it. The laptop's
+  personal instance is the fallback when the VM is down.
 - **The gate also checks pushes** (estate ADR-023): it refuses any force
   push (`--force*`, `-f`, `--mirror`, a `+ref`), deleting `main` or
   `--prune` in any repo, a push that moves `main` of a `pr: true` repo (a
