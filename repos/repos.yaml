@@ -49,6 +49,10 @@ repos:
     private: true
     check: npm run -s lint && npm run -s typecheck && npm test --silent && npm run -s test:e2e
     description: Private family trip atlas.
+  - name: khe-albums
+    url: https://github.com/khelias/khe-albums.git
+    check: .venv/bin/ruff check . && .venv/bin/ruff format --check . && .venv/bin/mypy && .venv/bin/python -m pytest -q
+    description: Family album selection from the home photo library, written as Apple Photos favourites.
   - name: ha-estfeed
     url: https://github.com/khelias/ha-estfeed.git
     check: .venv/bin/ruff check custom_components tests && .venv/bin/ruff format --check custom_components tests && .venv/bin/mypy && .venv/bin/python -m pytest tests -q --cov=custom_components/estfeed --cov-fail-under=85
