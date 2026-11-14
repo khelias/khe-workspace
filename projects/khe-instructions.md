@@ -1,5 +1,8 @@
 # KHE project instructions
 
+Waiting: Projects is not on the account yet (checked 2026-11-14); nothing
+uses this file until it is.
+
 These are pasted into the claude.ai project "KHE" (Project settings, Memory,
 Project instructions). The workspace's own `CLAUDE.md` and `AGENTS.md` carry
 the rules; this file only says where and how the project's tasks run.

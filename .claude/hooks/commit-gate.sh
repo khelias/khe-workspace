@@ -15,10 +15,12 @@
 # prefix one commit. It also refuses `git add -A/./-u` and `git commit -a`
 # in any call, and the pushes estate ADR-023 keeps from the agent: any force
 # push, a push to the default branch of a `pr: true` repo, a release tag push
-# (`release_tag:` in repos.yaml) and `gh pr merge --admin`. Other Bash calls pass
-# through untouched, so a passing commit costs no tokens. The hook is
-# registered with onFailure "block", so an error in this script blocks every
-# Bash call: it runs under /bin/bash 3.2.
+# (`release_tag:` in repos.yaml) and `gh pr merge --admin`, plus a push that
+# could run a command of its choosing, since agent-vm allows pushes without a
+# prompt. Other Bash calls pass through untouched, so a passing commit costs
+# no tokens. The hook is registered with onFailure "block", so an error in
+# this script blocks every Bash call: it runs under macOS /bin/bash 3.2 and
+# bash 5 on agent-vm.
 set -uo pipefail
 
 input="$(cat)"
@@ -194,16 +196,22 @@ admin_re="(^|[;&|(\`[:space:]/])gh[[:space:]]+([^;&|]*[[:space:]])?pr[[:space:]]
 [[ "$scan" =~ $admin_re ]] && refuse "'gh pr merge --admin' merges past the required checks" merge
 
 switch_re="${git_re}(switch|checkout)([[:space:]]|;|\$)"
-gitdir_flag_re='--(git-dir|work-tree)'
 gitdir_env_re='(^|[;&|([:space:]])GIT_(DIR|WORK_TREE)='
-push_config_re="-c[[:space:]]+[\"']?(push\\.|remote\\.[^[:space:]=]*\\.(push|mirror))"
+# A push may only run git's own transport: these hand it a command to run,
+# locally or on the remote's host.
+push_env_re='(^|[;&|([:space:]])(GIT_(SSH[A-Z_]*|ASKPASS|PROXY_COMMAND|EXEC_PATH|CONFIG_[A-Z0-9_]*)|SSH_ASKPASS)='
+# A long option whose value is a separate word (`--namespace n`) is not read
+# by git_core, so the push would go unseen; this finds any git call with
+# options before a `push`, and each must also match push_re.
+loose_push_re="(^|[;&|(\`[:space:]/])git([[:space:]]+-[^[:space:];&|]*([[:space:]]+[^-[:space:];&|][^[:space:];&|]*)?)+[[:space:]]+push([[:space:]]|;|\$)"
 # git takes any unique prefix of a long option, so these match by prefix.
 push_check() {
     local t remote= skip= all= tags= del= ref dst pattern pr
     local refs=() toks=()
-    [[ "$3" =~ $gitdir_flag_re ]] && refuse "a push with --git-dir or --work-tree cannot be tied to its repo"
-    [[ "$3" =~ $push_config_re ]] &&
-        refuse "a push with '-c push.*' or a remote's push or mirror setting changes what it pushes"
+    local g="$3"
+    while [[ "$g" =~ -C[[:space:]]+[^[:space:]]+ ]]; do g="${g/"${BASH_REMATCH[0]}"/}"; done
+    [[ "$g" =~ [^[:space:]] ]] &&
+        refuse "a push may carry only -C before 'push': '${g#"${g%%[![:space:]]*}"}' can change its repo, what it pushes or a command it runs"
     read -r -a toks <<<"$2"
     for t in ${toks[@]+"${toks[@]}"}; do
         # The shell drops quotes and backslashes inside a word before git sees it.
@@ -216,7 +224,8 @@ push_check() {
             --ta* | --fol*) tags=1 ;;
             --de*) del=1 ;;
             --pr*) refuse "'$t' deletes remote branches that are gone locally" ;;
-            --push-option | --repo | --receive-pack | --exec | -o) skip=1 ;;
+            --rece* | --e*) refuse "'$t' runs a command of its choosing on the remote's host" ;;
+            --push-option | --repo | -o) skip=1 ;;
             --* | -o*) ;;
             -*f*) refuse "'$t' is a force push" ;;
             -*d*) del=1 ;;
@@ -274,10 +283,18 @@ push_check() {
 }
 
 push_re="${git_re}push([[:space:]]|;|\$)"
+rest="$scan"
+while [[ "$rest" =~ $loose_push_re ]]; do
+    m="${BASH_REMATCH[0]}"
+    [[ "$m" =~ $push_re ]] || refuse "the options between 'git' and 'push' cannot be read; write them as -C <dir> or cd there"
+    rest="${rest#*"$m"}"
+done
 if [[ "$scan" =~ $push_re ]]; then
     action=push
     [[ "$scan" =~ $gitdir_env_re ]] &&
         refuse "a push with GIT_DIR or GIT_WORK_TREE set cannot be tied to its repo"
+    [[ "$scan" =~ $push_env_re ]] &&
+        refuse "a push with GIT_SSH*, an ASKPASS, GIT_PROXY_COMMAND, GIT_EXEC_PATH or GIT_CONFIG_* set can run a command of its choosing"
     walk "$push_re"
     i=0
     while [[ $i -lt ${#dirs[@]} ]]; do

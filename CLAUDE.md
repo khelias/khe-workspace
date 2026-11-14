@@ -125,10 +125,17 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   workspace cloned to `~/khe`
   ([khe-homelab `infrastructure/agent-vm.md`](https://github.com/khelias/khe-homelab/blob/main/infrastructure/agent-vm.md)).
   There the config dir is the default `~/.claude`, bash is 5 with gawk and
-  upstream gitleaks, the gate runs unchanged and there is no Bash sandbox.
+  upstream gitleaks, the gate runs unchanged (its push cases checked there
+  2026-11-14) and there is no Bash sandbox. Sessions start in auto mode and
+  every `ssh` asks the operator, so a docker-vm command waits for a tap on
+  the phone. There is no browser pane and no Claude in Chrome: Playwright's
+  Chromium is in `~/.cache/ms-playwright`, used from a repo that has
+  Playwright (`npx playwright screenshot --viewport-size=375,812 <url>
+  <file>.png`, then read the image).
   Its memory folder is keyed by the VM's workspace path, not the laptop's.
-  Parallel sessions there use `repos/<name>` worktrees as above. A claude.ai
-  Projects task runs there only as a local thread: a cloud thread reads just
+  Parallel sessions there use `repos/<name>` worktrees as above. Projects is
+  not on the account yet (2026-11-14); once it is, a claude.ai Projects task
+  runs there only as a local thread: a cloud thread reads just
   `CLAUDE.md`, so it has no gate and no skills, and the project's
   instructions (`projects/khe-instructions.md`) forbid it. The laptop's
   personal instance is the fallback when the VM is down.
@@ -137,8 +144,10 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   `--prune` in any repo, a push that moves `main` of a `pr: true` repo (a
   bare `git push` there from `main` included), a
   tag push matching a repo's `release_tag:` (khe-ui) and `gh pr merge
-  --admin`, and a push it cannot read: a value from a variable, `GIT_DIR`,
-  `--git-dir`, a `-c push.*` setting, or `HEAD` after a branch switch in the
-  same call. It reads the command line only: a git command inside a quoted
+  --admin`. It also refuses a push it cannot read (a value from a variable,
+  `GIT_DIR`, any global option before `push` but `-C`, or `HEAD` after a
+  branch switch in the same call) and one that could run a command of its
+  choosing (`--receive-pack`, `--exec`, `GIT_SSH*`, `GIT_CONFIG_*`, an
+  ASKPASS). It reads the command line only: a git command inside a quoted
   string with spaces (`ssh "..."`, `bash -c '...'`), a script or an alias is
-  not seen, so never commit or push on the VM.
+  not seen, so never commit or push on docker-vm.
