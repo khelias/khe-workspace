@@ -49,6 +49,8 @@ Skip when the task had no plan.
 - Mark it done in that file's own style (a dated "Done YYYY-MM-DD" bullet,
   a tick, a removed item). Link the plan only from khe-meta: a public
   repo's roadmap does not link the private khe-meta plans.
+- In khe-meta, a finished item also leaves the Backlog at the top of
+  `ROADMAP.md`, and a follow-up gets a line there in its place in the order.
 - Follow-ups the task found go in as new items there.
 - No entry and no follow-up: leave the roadmap alone.
 

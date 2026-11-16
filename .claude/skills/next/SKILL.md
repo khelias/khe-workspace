@@ -70,7 +70,9 @@ unfinished. Then sort the open steps:
 
 ## 3. Ready roadmap items
 
-Sources, in this order: Horizon 1 of `repos/khe-meta/ROADMAP.md`, the
+Sources, in this order: the Backlog at the top of
+`repos/khe-meta/ROADMAP.md` (already ordered, with sizes and blockers; check
+each against git, it can drift), Horizon 1 of the same file, the
 near-term sections of each repo's `ROADMAP.md`, and the first measurable
 steps in `repos/khe-meta/AMBITIONS.md` and the repos' Ambitions sections.
 Read them even when step 2 found plenty: the operator may want new work.
