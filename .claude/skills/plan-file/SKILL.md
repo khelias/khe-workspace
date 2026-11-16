@@ -50,8 +50,15 @@ it working and Close out stay there, since they apply to every change.
   types the `/goal` line there. Say which model the goal session should
   run: `sonnet` when
   every step is mechanical and spelled out, `opus` when steps leave
-  judgement calls. The operator sets it in the new session, since switching
-  models inside a session drops the earlier thinking.
+  judgement calls, and `sonnet` with `/advisor opus` when most steps are
+  mechanical but a few leave a call: Sonnet runs the work and consults
+  Opus at decision points
+  ([advisor](https://code.claude.com/docs/en/advisor)). The operator sets
+  both in the new session, since switching models inside a session drops
+  the earlier thinking. `/advisor` saves to user settings and an Opus main
+  model accepts an Opus advisor, so after the run `/advisor off` keeps it
+  from doubling later Opus sessions. The advisor reads the same
+  transcript, so it does not replace the opus check below.
 - **Check against the plan** at the end of a `/goal` run, before the
   review: a subagent with `model: opus` compares the diff to the plan file.
   Every step implemented, the listed edge cases tested, nothing outside the
