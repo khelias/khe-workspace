@@ -14,6 +14,10 @@ archive commit. If `repos/khe-bunny-tales` is missing, run
 `scripts/workspace.sh clone`; if its `.venv` is missing, set it up by the
 command in its AGENTS.md before archiving.
 
+Archiving a story includes its picture, drawn from its full text and
+rendered by `scripts/scenes/` ("Arhiveeri jutt" step 4), which the operator
+approves before it is kept.
+
 Archiving needs no audio. The reading is exported (`scripts/export.py`) and
 uploaded to the audio store (`scripts/upload_audio.sh`) on the laptop, and a
 story is published to khe.ee/stories/ by its `published:` line; the push to

@@ -60,7 +60,7 @@ repos:
     description: Unejänku, the bedtime stories app (public code, invented demo stories).
   - name: khe-bunny-tales
     url: https://github.com/khelias/khe-bunny-tales.git
-    check: test -x .venv/bin/python || { echo "khe-bunny-tales has no .venv, run python3 -m venv .venv && .venv/bin/pip install -r requirements.txt"; exit 1; }; .venv/bin/python scripts/check.py && .venv/bin/python -m unittest discover -s scripts -q
+    check: test -x .venv/bin/python || { echo "khe-bunny-tales has no .venv, run python3 -m venv .venv && .venv/bin/pip install -r requirements.txt"; exit 1; }; .venv/bin/python scripts/check.py && .venv/bin/python -m unittest discover -s scripts -q && node scripts/scenes/render.mjs --check
     description: The family's bedtime stories and the world they share.
   - name: ha-estfeed
     url: https://github.com/khelias/ha-estfeed.git
