@@ -169,7 +169,7 @@ it unasked; a one-off correction goes to memory.
   This root's own Renovate automerge (Actions minor and patch, digests, pins)
   is undone by reverting its commit on `main`.
 - Every web app runs `khe-design-lint` from `@khelias/ui` in its lint
-  ([estate ADR-021](https://github.com/khelias/khe-architecture/blob/main/decisions/021-family-shell-and-design-check.md)),
+  ([estate ADR-035](https://github.com/khelias/khe-architecture/blob/main/decisions/035-family-shell-and-design-check-with-its-exceptions.md)),
   against a committed baseline that only shrinks; its usage is in khe-ui
   `AGENTS.md` "The design check".
 - Verification artifacts (screenshots, saved pages, one-off scripts) go to the

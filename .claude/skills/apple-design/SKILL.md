@@ -176,7 +176,7 @@ Smoothness is about *what's in the frames*, not just the frame rate.
 - For very fast motion, a subtle **motion blur / stretch** encodes speed and reads better than a hard sharp streak.
 - `requestAnimationFrame` is the web's display-synced clock (Apple uses `CADisplayLink`). Animate only compositor-friendly properties — `transform` and `opacity` — and hint with `will-change` where motion is imminent.
 
-In KHE the family `DESIGN.md` (khe-sites) and estate ADR-021 rule out translucent materials: chrome is opaque on `paper`, with no backdrop blur and one soft shadow only on a floating layer. Read section 12 for the hierarchy ideas, not the materials.
+In KHE the family `DESIGN.md` (khe-sites) and estate ADR-035 rule out translucent materials in the family shell: chrome is opaque on `paper`, with no backdrop blur and one soft shadow only on a floating layer. The rooms that keep their own look (estate ADR-025, the house dashboard; ADR-028, the stories room) may use them. Read section 12 for the hierarchy ideas, not the materials.
 
 ## 12. Materials & depth — translucency conveys hierarchy
 
