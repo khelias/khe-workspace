@@ -143,8 +143,8 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   agent-vm: the weekly digest in khe-homelab first.
   Its memory folder is keyed by the VM's workspace path, not the laptop's.
   Parallel sessions there use `repos/<name>` worktrees as above. Projects
-  reached the account on 2026-11-16; a claude.ai Projects task runs there
-  only as a local thread: a cloud thread reads just
+  reached the account on 2026-11-16 (project "KHE"): a claude.ai Projects
+  task runs there only as a local thread, in `~/khe`: a cloud thread reads just
   `CLAUDE.md`, so it has no gate and no skills, and the project's
   instructions (`projects/khe-instructions.md`) forbid it. The laptop's
   personal instance is the fallback when the VM is down.

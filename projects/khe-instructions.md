@@ -1,7 +1,7 @@
 # KHE project instructions
 
-Waiting: Projects is not on the account yet (checked 2026-11-14); nothing
-uses this file until it is.
+In use since 2026-11-16, when Projects reached the account: the project
+"KHE" runs its threads locally on agent-vm, in `~/khe`.
 
 These are pasted into the claude.ai project "KHE" (Project settings, Memory,
 Project instructions). The workspace's own `CLAUDE.md` and `AGENTS.md` carry
