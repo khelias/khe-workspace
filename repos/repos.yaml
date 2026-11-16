@@ -55,7 +55,7 @@ repos:
     description: Family album selection from the home photo library, written as Apple Photos favourites.
   - name: khe-stories
     url: https://github.com/khelias/khe-stories.git
-    check: test ! -f package.json || { npm run lint && npm run typecheck && npm test && npm run build && npm run -s test:e2e; }
+    check: test ! -f package.json || { npm run lint && npm run typecheck && npm test && { test ! -d reader || python3 -m unittest discover -s reader -q; } && npm run build && npm run -s test:e2e; }
     pr: true
     description: Unejänku, the bedtime stories app (public code, invented demo stories).
   - name: khe-bunny-tales
