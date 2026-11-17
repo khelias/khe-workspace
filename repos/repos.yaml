@@ -62,6 +62,14 @@ repos:
     url: https://github.com/khelias/khe-bunny-tales.git
     check: test -x .venv/bin/python || { echo "khe-bunny-tales has no .venv, run python3 -m venv .venv && .venv/bin/pip install -r requirements.txt"; exit 1; }; .venv/bin/python scripts/check.py && .venv/bin/python -m unittest discover -s scripts -q && node scripts/scenes/render.mjs --check
     description: The family's bedtime stories and the world they share.
+  - name: khe-deals
+    url: https://github.com/khelias/khe-deals.git
+    check: npm run -s check
+    description: Family deal alerts, a Telegram bot that watches second-hand listings.
+  - name: khe-deals-watches
+    url: https://github.com/khelias/khe-deals-watches.git
+    private: true
+    description: The family's deal watches, validated by khe-deals (estate ADR-039).
   - name: ha-estfeed
     url: https://github.com/khelias/ha-estfeed.git
     check: .venv/bin/ruff check custom_components tests && .venv/bin/ruff format --check custom_components tests && .venv/bin/mypy && .venv/bin/python -m pytest tests -q --cov=custom_components/estfeed --cov-fail-under=85
