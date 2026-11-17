@@ -12,6 +12,11 @@ it working and Close out stay there, since they apply to every change.
   command. Plan files land in `repos/khe-meta/plans/` (`plansDirectory`).
   The operator does not switch modes: when a task needs a plan, enter plan
   mode yourself with the `EnterPlanMode` tool rather than planning in chat.
+  Under its Status and Plan review lines the plan opens with a
+  `**TL;DR:**` of two to four plain sentences in the shape of a PR's
+  (`AGENTS.md` "Who runs what"): what changes and what the operator will
+  notice, what could go wrong, how to undo it. The same TL;DR, in
+  Estonian, goes beside the `/goal` line when the plan is handed over.
   The plan's Context lists the decisions it makes, each with its ADR or
   why it needs none. A decision needs one when it is hard to reverse,
   picks between real alternatives, and spans two or more repos or decides
@@ -25,7 +30,8 @@ it working and Close out stay there, since they apply to every change.
   After writing the plan file and before handing over the `/goal` line,
   have a subagent without this conversation review it: what does the plan
   get wrong or leave out that would break the goal or correctness, and
-  which decision it makes lacks its ADR step? Gaps, not style. Verify
+  which decision it makes lacks its ADR step, and does the TL;DR still
+  match the Steps? Gaps, not style. Verify
   each finding, fix the plan for the real ones, say which
   were dropped, and write `**Plan review:** <n> (<d> dropped)` under the
   plan's Status for `retro`'s Caught line to copy. Plan mode names the file with a random slug and allows no
