@@ -128,7 +128,8 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   upstream gitleaks, the gate runs unchanged (its push cases checked there
   2026-11-14) and Bash runs in a strict sandbox (estate ADR-027): no
   `dangerouslyDisableSandbox` retry, outbound to GitHub, npm, PyPI,
-  Anthropic and Debian only, `~/.ssh` and `~/.config/khe` unreadable; git,
+  Anthropic, Debian and Hinnavaatlus (for khe-deals) only, `~/.ssh` and
+  `~/.config/khe` unreadable; git,
   `git push` and `gh` work inside it. Sessions start in auto mode; `ssh`,
   `scp` and the HA scripts run outside the sandbox only when the call holds
   that one command (no `cd`, pipe or redirect), and each asks the operator,
