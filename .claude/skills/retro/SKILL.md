@@ -1,6 +1,6 @@
 ---
 name: retro
-description: Close out a finished task by recording what it taught - the plan file's Status and Outcome, the roadmap entry it moves, and a proposed AGENTS.md Judgement line when an operator correction repeats. Use after a task's last commit, at the end of a /goal run, or when the operator asks for a retro or wrap-up.
+description: Close out a finished task by recording what it taught - the plan file's Status and Outcome, the roadmap entry it moves, and a proposed AGENTS.md Judgement line when an operator correction repeats - and by removing the worktrees it made. Use after a task's last commit, at the end of a /goal run, or when the operator asks for a retro or wrap-up.
 ---
 
 <!-- Modelled on /revise-claude-md in github.com/anthropics/claude-plugins-official (claude-md-management). -->
@@ -77,3 +77,23 @@ Commit the plan file by its own path in its own khe-meta commit, each
 roadmap edit in its own repo, and an approved Judgement line in the root.
 Push them where the session allows (root `AGENTS.md`, "Who runs what"),
 else say what still needs pushing.
+
+## 7. Worktrees
+
+Last, remove each `repos/<name>` worktree this session made for the task.
+Another session's worktree stays, and so does the desktop app's own under
+`.claude/worktrees/`. Run this from the main checkout, after `git -C <main
+checkout> fetch`, and remove a worktree only when all of these hold:
+
+- `git -C <worktree> merge-base --is-ancestor HEAD origin/main` succeeds, so
+  a pull request still waiting to merge keeps its worktree.
+- `git -C <worktree> status --porcelain` lists nothing. A `node_modules` or
+  `.venv` symlink counts as untracked: delete the link alone with a plain
+  `rm`.
+- No later run of the same plan needs it.
+
+Then `git -C <main checkout> worktree remove <absolute path>`, never with
+`--force`, and `git -C <main checkout> branch -d <branch>`. When `-d` refuses
+only because the main checkout is behind, `-D` is safe: the first check has
+already put the branch on `origin/main`. Name in the closing message any
+worktree left behind and why.

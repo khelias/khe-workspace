@@ -35,9 +35,10 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   with the reason.
 - **See it working** for UI changes: `/run` in the browser pane.
 - **Close out** a task after its last commit with the `retro` skill:
-  the plan file's Status and Outcome, the roadmap entry it moves, and a
-  Judgement line when a correction repeats. A small fix with no plan and
-  no roadmap entry skips it.
+  the plan file's Status and Outcome, the roadmap entry it moves, a
+  Judgement line when a correction repeats, and the removal of the task's
+  own worktrees. A small fix with no plan and no roadmap entry does only
+  the removal.
 
 ## Harness facts
 
