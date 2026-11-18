@@ -42,7 +42,8 @@ instance), the operator runs them from a handover:
 - khe-meta is private, holds documents and deploys nothing, so a session
   pushes each commit there right after making it, and that push may carry
   other sessions' commits: otherwise a plan stays on the machine that wrote
-  it. When the branch is behind, merge first; never a force push.
+  it. When the branch is behind, rebase onto `origin/main` first; stop on a
+  conflict, and never force push.
 - In a repo marked `pr: true` in `repos/repos.yaml`, agent work reaches
   `main` through a pull request whose required checks pass: commit on a
   branch, then `cd <absolute repo path> && git fetch &&
