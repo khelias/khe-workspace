@@ -53,6 +53,10 @@ repos:
     url: https://github.com/khelias/khe-albums.git
     check: .venv/bin/ruff check . && .venv/bin/ruff format --check . && .venv/bin/mypy && .venv/bin/python -m pytest -q
     description: Family album selection from the home photo library, written as Apple Photos favourites.
+  - name: khe-workshop
+    url: https://github.com/khelias/khe-workshop.git
+    check: python3 scripts/check.py && { test ! -d web || node --test web/test/; } && { test ! -f package.json || npm run -s lint; }
+    description: The household's 3D-printable parts as OpenSCAD source, and the Töökoda room that shows them.
   - name: khe-stories
     url: https://github.com/khelias/khe-stories.git
     check: test ! -f package.json || { npm run lint && npm run typecheck && npm test && { test ! -d reader || python3 -m unittest discover -s reader -q; } && npm run build && npm run -s test:e2e; }
