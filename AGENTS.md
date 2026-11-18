@@ -76,8 +76,9 @@ instance), the operator runs them from a handover:
   (public, cited as "estate ADR-NNN"); the estate roadmap and plans stay in the
   private `repos/khe-meta/`.
 - `repos/khe-meta/house/` - private house documentation: Home Assistant rollout
-  and measurements, HVAC, network. Device ids, LAN addresses of house devices
-  and anything identifying live here and **never** in a public repo.
+  and measurements, HVAC, network, the 3D printer (`k2-printer.md`). Device
+  ids, LAN addresses of house devices and anything identifying live here and
+  **never** in a public repo.
 - Each repo's own `AGENTS.md` - its commands, conventions and operating
   procedure; the ha-estfeed fork has none. `repos/khe-home-assistant/AGENTS.md`
   has the Home Assistant procedure.
