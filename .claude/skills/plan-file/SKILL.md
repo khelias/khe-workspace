@@ -37,7 +37,8 @@ it working and Close out stay there, since they apply to every change.
   plan's Status for `retro`'s Caught line to copy. Plan mode names the file with a random slug and allows no
   other edits, so after leaving it rename the file (`git mv` once
   committed) to a descriptive kebab-case name (`n8n-removal.md`) before
-  the `/goal` line names it.
+  the `/goal` line names it, then commit and push it (root `AGENTS.md`,
+  "Who runs what"), so the run can start on either machine.
 - **Execute** a written plan through `/goal`, which only the operator can
   type: end the planning turn with the exact line to paste, a condition
   provable from output plus a turn cap, e.g. `/goal every step in

@@ -30,7 +30,8 @@ instance), the operator runs them from a handover:
   the order it must run, cleanup included, so a failure stops the rest.
   Split it only where a step needs checking before the next.
 - Kept with the operator in every session: a push that would ship commits
-  this session did not make, a diff under `.github/workflows/`, a `v*` tag
+  this session did not make (khe-meta excepted, below), a diff under
+  `.github/workflows/`, a `v*` tag
   in khe-ui (it publishes to npm), fetching secrets, and the destructive
   operations under Boundaries. Never a force push, and never an admin merge
   past a pull request's required checks.
@@ -38,6 +39,10 @@ instance), the operator runs them from a handover:
   confirm the branch is not behind its upstream, then list `git log
   --oneline @{u}..` and stop on any commit this session did not make: the
   push would ship it too. Say in the report what was pushed and where.
+- khe-meta is private, holds documents and deploys nothing, so a session
+  pushes each commit there right after making it, and that push may carry
+  other sessions' commits: otherwise a plan stays on the machine that wrote
+  it. When the branch is behind, merge first; never a force push.
 - In a repo marked `pr: true` in `repos/repos.yaml`, agent work reaches
   `main` through a pull request whose required checks pass: commit on a
   branch, then `cd <absolute repo path> && git fetch &&
