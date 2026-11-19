@@ -38,6 +38,16 @@
             "onFailure": "continue"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/node-path.sh",
+            "timeout": 5,
+            "onFailure": "continue"
+          }
+        ]
       }
     ],
     "PreToolUse": [

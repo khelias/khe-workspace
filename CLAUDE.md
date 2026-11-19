@@ -44,9 +44,10 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
 
 - **`git commit` in a repo is gated.** `.claude/hooks/commit-gate.sh` runs
   that repo's `check:` before the commit and blocks it on failure. On the
-  laptop it runs the check on the nvm default Node, because the desktop app
-  hands hooks and the Bash tool a PATH with every nvm version, oldest first,
-  so `node` in a session's own shell may still be Node 11. Fix the
+  laptop it runs the check on nvm's default Node, and the `node-path.sh`
+  `SessionStart` hook puts the same Node first in the Bash tool's PATH,
+  because the desktop app hands both a PATH with every nvm version, oldest
+  first (`.claude/hooks/nvm-default.sh`). Fix the
   cause; never work around the gate. Do not run `check:` yourself right
   before committing; the gate already does. It knows a repo listed in
   `repos/repos.yaml` by its git common dir under `repos/` of the session
