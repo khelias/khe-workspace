@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Read the agent loop's measures from the plan files, git and GitHub.
 #
-#   scripts/agent-metrics.sh [--plans <dir>] [--since <YYYY-MM-DD>]
+#   scripts/agent-metrics.sh [--plans <dir>] [--since <YYYY-MM-DD>] [--json]
 #
 # Covers the plans in <dir> (default repos/khe-meta/plans) first committed on
 # or after <since> (default 30 days ago; a plan outside git counts from its
@@ -15,6 +15,9 @@
 #     time to restore is the revert's first run minus the reverted one's;
 #   - possible rework, not in the rate: later fix commits within 14 days
 #     that touch the plan's files.
+# --json prints the counts alone as one JSON object, the snapshot that
+# khe-architecture's metrics/agent-loop.json holds (estate ADR-044): no plan
+# names, shas or paths.
 # Shas come from the plan's **Status:** line as `<repo> \`<sha>\`` pairs.
 # Read-only. Run it outside the sandbox: it calls gh and reads remote refs,
 # which sandboxed git may not see. Fetch the repos first for current numbers.
@@ -24,11 +27,13 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 manifest="$root/repos/repos.yaml"
 plans="$root/repos/khe-meta/plans"
 since=""
+json=""
 while [[ $# -gt 0 ]]; do
     case "$1" in
         --plans) plans="${2:?--plans needs a directory}"; shift 2 ;;
         --since) since="${2:?--since needs a date}"; shift 2 ;;
-        *) echo "usage: $0 [--plans <dir>] [--since <YYYY-MM-DD>]" >&2; exit 2 ;;
+        --json) json=1; shift ;;
+        *) echo "usage: $0 [--plans <dir>] [--since <YYYY-MM-DD>] [--json]" >&2; exit 2 ;;
     esac
 done
 [[ -d "$plans" ]] || { echo "agent-metrics: no plans directory $plans" >&2; exit 2; }
@@ -46,7 +51,7 @@ fi
 
 tmp="$(mktemp -d)" || exit 2
 trap 'rm -r -f -- "$tmp"' EXIT
-: > "$tmp/rows"; : > "$tmp/plans"; : > "$tmp/notes"; : > "$tmp/reverts"; : > "$tmp/rework"
+: > "$tmp/rows"; : > "$tmp/plans"; : > "$tmp/notes"; : > "$tmp/reverts"; : > "$tmp/rework"; : > "$tmp/durations"
 
 note() { printf '  %s: %s\n' "$1" "$2" >> "$tmp/notes"; }
 dur() { printf '%dd %dh %dm' $(($1 / day)) $(($1 % day / 3600)) $(($1 % 3600 / 60)); }
@@ -98,7 +103,8 @@ status_pairs() {
 plan_start() {
     local f="$1" t
     t="$(git -C "$(dirname "$f")" log --follow --diff-filter=A --format=%ct -- "$(basename "$f")" 2>/dev/null | tail -n 1)"
-    [[ -n "$t" ]] || t="$(stat -f %m "$f" 2>/dev/null || stat -c %Y "$f")"
+    # GNU stat first: on Debian `stat -f` means the file system and prints no mtime.
+    [[ -n "$t" ]] || t="$(stat -c %Y "$f" 2>/dev/null || stat -f %m "$f")"
     printf '%s' "$t"
 }
 
@@ -281,12 +287,44 @@ while IFS=$'\t' read -r name start; do
         printf '  %-48s -  (pushed before the plan)\n' "$name" >> "$tmp/push"
     else
         printf '  %-48s %s\n' "$name" "$(dur $((reached - start)))" >> "$tmp/push"
+        echo $((reached - start)) >> "$tmp/durations"
     fi
 done < "$tmp/plans"
 
 for f in "$tmp"/runs.*.err; do [[ -f "$f" ]] && note "gh" "$(cat "$f")"; done
 
-echo "Plans since $(jq -rn --argjson s "$since_s" '$s | todate[:10]') in $plans"
+since_day="$(jq -rn --argjson s "$since_s" '$s | todate[:10]')"
+
+if [[ -n "$json" ]]; then
+    arr() { local IFS=,; printf '[%s]' "$*"; }
+    jq -n \
+        --arg since "$since_day" \
+        --arg until "$(date +%Y-%m-%d)" \
+        --argjson plans "$(wc -l < "$tmp/plans" | tr -d ' ')" \
+        --argjson acted "$(arr "${sum_n[@]}")" \
+        --argjson dropped "$(arr "${sum_d[@]}")" \
+        --argjson notRun "$(arr "${not_run[@]}")" \
+        --argjson pending "$(arr "${pending[@]}")" \
+        --argjson push "$(arr "${push_n[@]}")" \
+        --argjson pushedPlans "$plans_pushed" \
+        --argjson revertedPlans "$plans_reverted" \
+        --slurpfile durations "$tmp/durations" \
+        'def check(i): {acted: $acted[i], dropped: $dropped[i], notRun: $notRun[i], pending: $pending[i]};
+        {since: $since, until: $until, plans: $plans,
+          planReview: check(0), planCheck: check(1), codeReview: check(2), securityReview: check(3),
+          operator: {acted: $acted[4], notRun: $notRun[4], pending: $pending[4]},
+          push: {unchanged: $push[0], changed: $push[1], discarded: $push[2], pending: $push[3]},
+          pushedPlans: $pushedPlans, revertedPlans: $revertedPlans,
+          planToPush: ($durations | sort | length as $n | {
+              count: $n,
+              medianMinutes: (if $n == 0 then 0
+                  elif $n % 2 == 1 then .[($n - 1) / 2] / 60
+                  else (.[$n / 2 - 1] + .[$n / 2]) / 120 end | round)
+          })}'
+    exit 0
+fi
+
+echo "Plans since $since_day in $plans"
 echo "  with a Caught line: $(wc -l < "$tmp/plans" | tr -d ' ')"
 if [[ ${#no_line[@]} -gt 0 ]]; then
     for n in "${no_line[@]}"; do echo "  no line: $n"; done
