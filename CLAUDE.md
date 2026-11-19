@@ -36,7 +36,8 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
 - **See it working** for UI changes: `/run` in the browser pane.
 - **Close out** a task after its last commit with the `retro` skill:
   the plan file's Status and Outcome, the roadmap entry it moves, a
-  Judgement line when a correction repeats, and the removal of the task's
+  Judgement line when a correction repeats, the refresh of the agent-loop
+  numbers on khe.ee/agents (estate ADR-044), and the removal of the task's
   own worktrees. A small fix with no plan and no roadmap entry does only
   the removal.
 
