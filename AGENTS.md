@@ -133,6 +133,9 @@ it unasked; a one-off correction goes to memory.
   search the web across several current sources before answering or changing
   anything, and look at the whole picture, not only the slice asked about. A
   change made on what the agent already knew is the one that gets undone.
+- **Write short from the first draft.** Each user-facing string makes one
+  point; an explanation beside the thing it explains, in a legend, sublabel
+  or link line, is cut before the operator sees it.
 
 ## Code and docs
 
