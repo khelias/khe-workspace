@@ -83,7 +83,33 @@ roadmap edit in its own repo, and an approved Judgement line in the root.
 Push them where the session allows (root `AGENTS.md`, "Who runs what"),
 else say what still needs pushing.
 
-## 7. Worktrees
+## 7. Agent-loop numbers
+
+The counts on `khe.ee/agents/` come from `metrics/agent-loop.json` in
+khe-architecture, which this step refreshes after the commits above (estate
+ADR-044). In the work account's instance, where `git push` is refused, skip
+it with one line saying the numbers wait for the next retro.
+
+- In `repos/khe-architecture` on a clean `main`, `git pull --ff-only`.
+  Not on `main`, dirty, or the pull fails: skip with one line naming why.
+- From the root, run `bash scripts/agent-metrics.sh --since 2026-10-22
+  --json > repos/khe-architecture/metrics/agent-loop.json`: unsandboxed on
+  the laptop (it calls gh and reads remote refs), inside the sandbox on
+  agent-vm. It takes about five minutes, so run it in the background and
+  wait for it to finish.
+- Compare it with the committed file without its date:
+  `diff <(git -C repos/khe-architecture show HEAD:metrics/agent-loop.json | jq 'del(.until)') <(jq 'del(.until)' repos/khe-architecture/metrics/agent-loop.json)`.
+  No difference: `git -C repos/khe-architecture checkout -- metrics/agent-loop.json`
+  and say in one line that no count changed.
+- Otherwise run `bash scripts/check.sh` in `repos/khe-architecture`. When
+  it passes, `git -C repos/khe-architecture add metrics/agent-loop.json`,
+  then `KHE_REVIEW_SKIP="generated agent-loop snapshot" git -C
+  repos/khe-architecture commit -m "agent-loop numbers"` as a command of its
+  own, and push after the `@{u}..` check in the root `AGENTS.md`. When it fails,
+  restore the file as above and report the check's line. The closing message
+  names the review skip and its reason, as `CLAUDE.md` asks.
+
+## 8. Worktrees
 
 Last, remove each `repos/<name>` worktree this session made for the task.
 Another session's worktree stays, and so does the desktop app's own under
