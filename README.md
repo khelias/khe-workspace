@@ -10,10 +10,10 @@ under `repos/`, and the AI-agent configuration sits here, once.
 khe-workspace/
   AGENTS.md              personal preferences, tool-agnostic
   CLAUDE.md              imports AGENTS.md and the estate index
-  .claude/               settings and the commit-gate hook
+  .claude/               settings, the commit gate and the session-start hook
   repos/repos.yaml       the repos this workspace clones, with their checks
   repos/<name>/          independent clones, gitignored
-  scripts/workspace.sh   clone | pull | status
+  scripts/workspace.sh   clone | pull | status | sync
 ```
 
 ## Setup
@@ -25,8 +25,12 @@ scripts/workspace.sh clone
 ```
 
 `scripts/workspace.sh status` shows each repo's branch and dirty state;
-`pull` fast-forwards the clean ones. Nothing outside this folder is touched,
-so `~/.claude/` and `~/.codex/` keep serving other projects.
+`pull` fast-forwards the clean ones, and `sync`, which every session start
+runs, does so for the repos on `main` and only reports this folder's own
+updates. Apart from this workspace's own memory
+folder, which the session start keeps the same on the laptop and agent-vm,
+nothing outside this folder is touched, so `~/.claude/` and `~/.codex/` keep
+serving other projects.
 
 ## Why this shape
 

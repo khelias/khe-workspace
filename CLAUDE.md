@@ -162,3 +162,16 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   ASKPASS). It reads the command line only: a git command inside a quoted
   string with spaces (`ssh "..."`, `bash -c '...'`), a script or an alias is
   not seen, so never commit or push on docker-vm.
+- **Every session start brings the machines into step.** The `SessionStart`
+  hook `.claude/hooks/session-start.sh` fast-forwards each repo under
+  `repos/` that is on a clean `main` (`scripts/workspace.sh sync`) and, from
+  the laptop's personal instance, syncs this workspace's memory with agent-vm
+  (`scripts/memory-sync.py`). The root is never fast-forwarded, since its
+  hooks run outside the sandbox: `behind` asks for a pull after reading what
+  changed. It prints only what needs a look: `missing`, `branch`, `dirty`,
+  `ahead` and `failed` name a repo it did not update, `npm ci` one it updated
+  whose lock file changed, and a `memory sync:` line the notes that came
+  from agent-vm, a note that differed on both machines or a sync that
+  stopped. A
+  `**Running:**` line it lists means a plan is changing the repos it names:
+  ask the operator before changing one of them.

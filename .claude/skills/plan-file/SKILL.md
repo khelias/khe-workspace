@@ -66,6 +66,14 @@ it working and Close out stay there, since they apply to every change.
   model accepts an Opus advisor, so after the run `/advisor off` keeps it
   from doubling later Opus sessions. The advisor reads the same
   transcript, so it does not replace the opus check below.
+  A `/goal` run marks what it is changing, because neither machine can see
+  the other's running work. Before its first edit it pulls khe-meta, reads
+  the `**Running:**` lines in `plans/*.md`, and stops to ask the operator
+  when another plan names a repo this run will change. It then writes
+  `**Running:** <laptop|agent-vm> <YYYY-MM-DD> <repo> [<repo> ...]` under
+  the plan's Status, leaving khe-meta out of the list, commits and pushes
+  that file at once, reads the lines again after the push, and stops to ask
+  the operator on an overlap. `retro` removes the line.
 - **Check against the plan** at the end of a `/goal` run, before the
   review: a subagent with `model: opus` compares the diff to the plan file.
   Every step implemented, the listed edge cases tested, nothing outside the

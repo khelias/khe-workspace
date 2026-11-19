@@ -29,6 +29,7 @@ for r in $(awk '/^[[:space:]]*- name:/{print $3}' repos/repos.yaml); do
   git -C repos/$r fetch --quiet
   gh pr list --repo khelias/$r --state open --json number,title,author,createdAt,statusCheckRollup --jq ".[]|\"$r#\(.number) \(.author.login) \(.createdAt[:10]) ci=\([.statusCheckRollup[]?|(.conclusion // .state)]|unique|join(\",\")) \(.title)\""
   gh run list --repo khelias/$r --branch main --status completed --limit 20 --json workflowName,conclusion --jq "group_by(.workflowName)|map(.[0])|.[]|select(.conclusion!=\"success\")|\"$r CI: \(.workflowName) \(.conclusion)\""
+  gh workflow list --all --repo khelias/$r --json name,state --jq ".[]|select(.state!=\"active\")|\"$r workflow: \(.name) \(.state)\""
 done
 scripts/workspace.sh status
 git fetch --quiet && git log --oneline @{u}..
@@ -40,6 +41,8 @@ git fetch --quiet && git log --oneline @{u}..
   session's, so say so rather than call it abandoned.
 - A Renovate PR is held for review once its CI is green and it is more than
   a day old. A failed CI on a PR or on `main` is an item of its own.
+- A workflow that is not active is reported, each one by name: something
+  switched it off, and the reason should be under **Waiting** in the Backlog.
 - A push, a PR merge and VM diagnosis are the agent's where its session
   allows (estate ADR-023): list them as work, not as the operator's. Offer
   the operator only what `AGENTS.md` "Who runs what" keeps with them (a
@@ -64,6 +67,8 @@ unfinished. Then sort the open steps:
   backups) goes in one line of things to check by hand, not counted.
 - A plan named like credentials (`*password*`, `*secret*`): do not open
   it. Give its name and open-step count, and let the operator size it.
+- A `**Running:**` line older than one day: an item for the operator to
+  confirm or clear, since the run that wrote it has probably ended.
 - A done plan whose `**Caught:**` line still says `pending` (the
   operator's look or the push outcome): one line asking the operator for
   it, ranked below unfinished work. `retro` then updates the line.

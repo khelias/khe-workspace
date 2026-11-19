@@ -55,6 +55,11 @@ instance), the operator runs them from a handover:
   protection there is strict.
 - On the homelab VM: what the agent runs there and what stays the
   operator's is in khe-homelab `AGENTS.md` "Access and operations".
+- A session that stops with something only the operator can do first adds
+  one line under **Waiting** in the Backlog of `repos/khe-meta/ROADMAP.md`,
+  so it does not stay in a chat. Switching a service or a scheduled job off
+  or on goes in the plan's Status in the same step, or under Waiting when
+  there is no plan.
 - The operator approves a fork PR run on a repo with a homelab runner, and
   only after reading its `.github/workflows/` diff (estate ADR-023 point 5; the setting
   is in `ESTATE.md` "Adding a repo").
