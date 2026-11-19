@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# Tests the choice of nvm's default Node (.claude/hooks/nvm-default.sh) and the
-# node-path hook against a fake nvm tree. Runs under macOS /bin/bash 3.2 and
-# bash 5: /bin/bash scripts/test-nvm-default.sh
+# Tests the choice of nvm's default Node and Homebrew's bin
+# (.claude/hooks/nvm-default.sh) and the node-path hook against a fake nvm
+# tree and Homebrew prefix. Runs under macOS /bin/bash 3.2 and bash 5:
+# /bin/bash scripts/test-nvm-default.sh
 set -uo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -49,9 +50,24 @@ case_ "no default alias" '<none>' ""
 case_ "a trailing newline" $'24\n' v24.13.0/bin
 result "no nvm at all" "$(pick "$tmp/none")" ""
 
+brew="$tmp/brew"
+mkdir -p "$brew/bin" "$tmp/nobrew/bin"
+printf '#!/bin/sh\n' > "$brew/bin/brew"
+chmod +x "$brew/bin/brew"
+export HOMEBREW_PREFIX="$tmp/nobrew"
+prefix() { NVM_DIR="$1" HOMEBREW_PREFIX="$2" bash -c ". '$lib'; resolve_tool_path; printf '%s' \"\$tool_path_prefix\"" 2>&1; }
+printf '24' > "$nvm/alias/default"
+result "the prefix is Node, then Homebrew" "$(prefix "$nvm" "$brew")" "$versions/v24.13.0/bin:$brew/bin"
+result "Homebrew alone without nvm" "$(prefix "$tmp/none" "$brew")" "$brew/bin"
+result "a bin folder without brew is not Homebrew" "$(prefix "$tmp/none" "$tmp/nobrew")" ""
+result "a relative Homebrew prefix is ignored" "$(prefix "$tmp/none" "brew")" ""
+
 env_file="$tmp/env"
 old="$versions/v11.15.0/bin:/usr/bin:/bin"
-printf '24' > "$nvm/alias/default"
+: > "$env_file"
+CLAUDE_ENV_FILE="$env_file" NVM_DIR="$nvm" HOMEBREW_PREFIX="$brew" bash "$hook"
+result "node-path puts Node and Homebrew first, once" \
+    "$(PATH="$old" bash -c ". '$env_file'; . '$env_file'; printf '%s' \"\$PATH\"")" "$versions/v24.13.0/bin:$brew/bin:$old"
 : > "$env_file"
 CLAUDE_ENV_FILE="$env_file" NVM_DIR="$nvm" bash "$hook"
 result "node-path puts the default first, once" \

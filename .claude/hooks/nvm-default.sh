@@ -1,8 +1,11 @@
 # Sourced by the commit gate and the node-path hook: sets node_bin_dir to the
-# bin folder of nvm's default Node, or to "" without nvm or a usable default.
+# bin folder of nvm's default Node, or to "" without nvm or a usable default,
+# and brew_bin_dir to Homebrew's bin, or to "" without Homebrew (agent-vm).
 # The desktop app hands hooks and the Bash tool a PATH with every nvm version
-# on it, oldest first, while a terminal runs the default. Runs under macOS
-# /bin/bash 3.2 and bash 5.
+# on it, oldest first, and /usr/bin before Homebrew, so python3 is macOS's
+# 3.9, while a terminal runs the defaults. Runs under macOS /bin/bash 3.2 and
+# bash 5.
+
 node_bin_dir=unset
 resolve_nvm_default() {
     [[ "$node_bin_dir" == unset ]] || return 0
@@ -28,5 +31,21 @@ resolve_nvm_default() {
         key=$((10#${BASH_REMATCH[1]} * 1000000 + 10#${BASH_REMATCH[2]} * 1000 + 10#${BASH_REMATCH[3]}))
         (( key > bkey )) && node_bin_dir="$d/bin" bkey=$key
     done
+    return 0
+}
+
+resolve_brew_bin() {
+    brew_bin_dir="${HOMEBREW_PREFIX:-/opt/homebrew}/bin"
+    [[ "$brew_bin_dir" == /* && -x "$brew_bin_dir/brew" ]] || brew_bin_dir=""
+    return 0
+}
+
+# The folders to put before PATH, nvm's Node first, in tool_path_prefix.
+resolve_tool_path() {
+    resolve_nvm_default
+    resolve_brew_bin
+    [[ "$node_bin_dir" == /* ]] || node_bin_dir=""
+    tool_path_prefix="$node_bin_dir"
+    [[ -z "$brew_bin_dir" ]] || tool_path_prefix="${tool_path_prefix:+$tool_path_prefix:}$brew_bin_dir"
     return 0
 }

@@ -44,10 +44,11 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
 
 - **`git commit` in a repo is gated.** `.claude/hooks/commit-gate.sh` runs
   that repo's `check:` before the commit and blocks it on failure. On the
-  laptop it runs the check on nvm's default Node, and the `node-path.sh`
-  `SessionStart` hook puts the same Node first in the Bash tool's PATH,
-  because the desktop app hands both a PATH with every nvm version, oldest
-  first (`.claude/hooks/nvm-default.sh`). Fix the
+  laptop it runs the check on nvm's default Node and Homebrew's tools, and
+  the `node-path.sh` `SessionStart` hook puts the same two first in the Bash
+  tool's PATH, because the desktop app hands both a PATH with every nvm
+  version, oldest first, and `/usr/bin` (macOS's python3 3.9) before
+  Homebrew (`.claude/hooks/nvm-default.sh`; agent-vm has no Homebrew). Fix the
   cause; never work around the gate. Do not run `check:` yourself right
   before committing; the gate already does. It knows a repo listed in
   `repos/repos.yaml` by its git common dir under `repos/` of the session

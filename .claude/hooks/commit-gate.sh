@@ -368,10 +368,10 @@ review_state() {
 tmp_root="$(mktemp -d)" && [[ -d "$tmp_root" ]] || fail "no temporary directory for the personal-data scan"
 trap 'rm -r -f -- "$tmp_root"' EXIT
 
-# A check runs on nvm's default Node rather than the oldest one on PATH. Without
-# the helper or nvm, PATH stands.
-node_bin_dir=""
-. "${BASH_SOURCE[0]%/*}/nvm-default.sh" 2>/dev/null || resolve_nvm_default() { :; }
+# A check runs on nvm's default Node and Homebrew's tools rather than the
+# oldest Node and macOS's python3 on PATH. Without the helper, PATH stands.
+tool_path_prefix=""
+. "${BASH_SOURCE[0]%/*}/nvm-default.sh" 2>/dev/null || resolve_tool_path() { tool_path_prefix=""; }
 
 gate() {
     local dir="$1"
@@ -523,9 +523,8 @@ gate() {
     check="$(yaml_key check)"
     [[ -n "$check" ]] || return 0
 
-    resolve_nvm_default
-    [[ "$node_bin_dir" == /* ]] || node_bin_dir=""
-    if ! out="$(cd "$top" && PATH="${node_bin_dir:+$node_bin_dir:}$PATH" bash -c "$check" 2>&1)"; then
+    resolve_tool_path
+    if ! out="$(cd "$top" && PATH="${tool_path_prefix:+$tool_path_prefix:}$PATH" bash -c "$check" 2>&1)"; then
         {
             echo "commit-gate: '$check' failed in $label; commit blocked."
             echo "Fix the failure, then commit again. Last lines of output:"
