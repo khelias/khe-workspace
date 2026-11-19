@@ -76,6 +76,10 @@ class Unreachable(Exception):
     """agent-vm did not answer, or its answer was not complete."""
 
 
+class Refused(Exception):
+    """A side holds something the sync will not carry; the operator is told."""
+
+
 class Deadline:
     def __init__(self, seconds: float) -> None:
         self.ends = time.monotonic() + seconds
@@ -158,6 +162,8 @@ class LocalSide:
         notes = {}
         for path in self.folder.iterdir():
             if NAME_RE.fullmatch(path.name) and path.is_file() and not path.is_symlink():
+                if path.stat().st_size > MAX_NOTE_BYTES:
+                    raise Refused(f"{path.name} on the laptop is over {MAX_NOTE_BYTES >> 20} MB")
                 notes[path.name] = make_note(path.read_bytes(), int(path.stat().st_mtime))
         return notes
 
@@ -220,10 +226,10 @@ def parse_archive(raw: bytes) -> dict[str, Note]:
     # A tar ends in two zero blocks; without them the listing was cut short.
     if len(raw) < 1024 or len(raw) % 512 or raw[-1024:].strip(b"\0"):
         raise Unreachable("incomplete archive")
-    # Too large is a failed listing, not a skipped note: a skipped note would
+    # Too large stops the run rather than skipping a note: a skipped note would
     # read as deleted on agent-vm and be deleted here.
     if len(raw) > MAX_ARCHIVE_BYTES:
-        raise Unreachable("archive too large")
+        raise Refused(f"agent-vm's memory folder is over {MAX_ARCHIVE_BYTES >> 20} MB")
     notes = {}
     try:
         with tarfile.open(fileobj=io.BytesIO(raw), mode="r:") as archive:
@@ -231,7 +237,7 @@ def parse_archive(raw: bytes) -> dict[str, Note]:
                 name = member.name.removeprefix("./")
                 if member.isreg() and NAME_RE.fullmatch(name):
                     if member.issparse() or member.size > MAX_NOTE_BYTES:
-                        raise Unreachable(f"unexpected member {name}")
+                        raise Refused(f"{name} on agent-vm is over {MAX_NOTE_BYTES >> 20} MB or sparse")
                     stream = archive.extractfile(member)
                     notes[name] = make_note(stream.read(), int(member.mtime))
     except (tarfile.TarError, OSError, EOFError) as error:
@@ -394,9 +400,12 @@ def sync(local_side: LocalSide, remote_side: RemoteSide, paths: Paths, dry_run: 
 def sync_sides(local_side: LocalSide, remote_side: RemoteSide, paths: Paths, dry_run: bool) -> int:
     try:
         remote = remote_side.read()
+        local = local_side.read()
     except Unreachable:
         return 0
-    local = local_side.read()
+    except Refused as error:
+        print(f"memory sync: stopped, {error}")
+        return 0
     last = load_state(paths.state)
     plan = reconcile(local, remote, last)
 

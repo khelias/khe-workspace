@@ -13,7 +13,7 @@ khe-workspace/
   .claude/               settings, the commit gate and the session-start hook
   repos/repos.yaml       the repos this workspace clones, with their checks
   repos/<name>/          independent clones, gitignored
-  scripts/workspace.sh   clone | pull | status | sync
+  scripts/workspace.sh   clone | pull | status | sync | running
 ```
 
 ## Setup

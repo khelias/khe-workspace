@@ -127,6 +127,8 @@ run_sync
 expect_eq "fast-forward: exit 0" "$rc" 0
 expect_eq "fast-forward: prints nothing" "$out" ""
 expect_eq "fast-forward: repo at upstream" "$(head_of "$a")" "$(remote_head_of "$a")"
+expect_gone "post-merge hook did not run" "$fx/post-merge-ran"
+expect_gone "fsmonitor did not run" "$fx/fsmonitor-ran"
 
 # --- the root is only reported ---
 new_fixture
@@ -136,8 +138,6 @@ before="$(head_of "$root")"
 run_sync
 expect_eq "root: reported, not merged" "$out" "  behind  khe-workspace (behind: 2, pull it after reading what changed)"
 expect_eq "root: left alone" "$(head_of "$root")" "$before"
-expect_gone "post-merge hook did not run" "$fx/post-merge-ran"
-expect_gone "fsmonitor did not run" "$fx/fsmonitor-ran"
 
 # --- every git call carries the safe settings ---
 new_fixture

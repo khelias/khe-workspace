@@ -242,6 +242,13 @@ class ChangedJustBeforeReplace(SyncCase):
         self.assertEqual((self.local_dir / "a.md").read_text(), "laptop saved late")
         self.assertEqual((self.remote_dir / "a.md").read_text(), "vm edit")
 
+    def test_remote_deletion_is_left_when_the_vm_file_changed_late(self) -> None:
+        self.in_step(a="one", b="two")
+        (self.local_dir / "a.md").unlink()
+        self.remote.before_write = lambda: self.put(self.remote_dir, "a.md", "vm saved late")
+        self.run_sync()
+        self.assertEqual((self.remote_dir / "a.md").read_text(), "vm saved late")
+
     def test_deletion_is_left_when_the_file_changed_late(self) -> None:
         self.in_step(a="one", b="two")
         (self.remote_dir / "a.md").unlink()
@@ -331,6 +338,36 @@ class Limits(SyncCase):
         self.assertEqual(output, "memory sync: changed here from agent-vm: n0.md, n1.md, n2.md, n3.md, n4.md\n")
         self.assertFalse((self.local_dir / "n0.md").exists())
 
+    def test_an_oversized_note_stops_the_run_and_says_so(self) -> None:
+        self.in_step(a="one")
+        self.put(self.remote_dir, "huge.md", "x" * (memory_sync.MAX_NOTE_BYTES + 1))
+        output = self.run_sync()
+        self.assertIn("memory sync: stopped, huge.md on agent-vm is over 1 MB", output)
+        self.assertFalse((self.local_dir / "huge.md").exists())
+
+    def test_an_oversized_laptop_note_stops_the_run_and_says_so(self) -> None:
+        self.in_step(a="one")
+        self.put(self.local_dir, "huge.md", "x" * (memory_sync.MAX_NOTE_BYTES + 1))
+        output = self.run_sync()
+        self.assertIn("memory sync: stopped, huge.md on the laptop is over 1 MB", output)
+        self.assertFalse((self.remote_dir / "huge.md").exists())
+
+    def test_an_oversized_remote_folder_stops_the_run_and_says_so(self) -> None:
+        self.in_step(a="one")
+        self.put(self.remote_dir, "b.md", "two")
+        with mock.patch.object(memory_sync, "MAX_ARCHIVE_BYTES", 4096):
+            output = self.run_sync()
+        self.assertIn("memory folder is over", output)
+        self.assertFalse((self.local_dir / "b.md").exists())
+
+    def test_a_laptop_with_under_half_of_the_files_stops_the_run(self) -> None:
+        self.in_step(a="1", b="2", c="3", d="4", e="5")
+        for name in "abc":
+            (self.local_dir / f"{name}.md").unlink()
+        output = self.run_sync()
+        self.assertIn("laptop holds 2 files of the last sync's 5", output)
+        self.assertTrue((self.remote_dir / "a.md").exists())
+
     def test_a_side_with_under_half_of_the_files_stops_the_run(self) -> None:
         self.in_step(a="1", b="2", c="3", d="4", e="5")
         for name in "abc":
@@ -389,11 +426,6 @@ class Unreachable(SyncCase):
         self.assertEqual(self.names(self.base / "home"), ["moved"])
         self.assertEqual(self.names(moved), ["a.md"])
 
-    def test_an_oversized_note_fails_the_listing(self) -> None:
-        self.in_step(a="one")
-        self.put(self.remote_dir, "huge.md", "x" * (memory_sync.MAX_NOTE_BYTES + 1))
-        self.assert_silent_and_untouched()
-
     def test_a_sparse_member_fails_the_listing(self) -> None:
         archive = io.BytesIO()
         info = tarfile.TarInfo("a.md")
@@ -401,8 +433,29 @@ class Unreachable(SyncCase):
         info.size = 0
         with tarfile.open(fileobj=archive, mode="w", format=tarfile.GNU_FORMAT) as handle:
             handle.addfile(info, io.BytesIO(b""))
-        with self.assertRaises(memory_sync.Unreachable):
+        with self.assertRaises(memory_sync.Refused):
             memory_sync.parse_archive(archive.getvalue())
+
+    def test_timeout_counts_as_unreachable_and_uses_the_ssh_options(self) -> None:
+        seen = []
+
+        def slow(argv, **kwargs):
+            seen.append((argv, kwargs["timeout"]))
+            raise subprocess.TimeoutExpired(argv, kwargs["timeout"])
+
+        remote = memory_sync.RemoteSide(memory_sync.Deadline(memory_sync.TOTAL_SECONDS))
+        with mock.patch.object(memory_sync.subprocess, "run", side_effect=slow):
+            with self.assertRaises(memory_sync.Unreachable):
+                remote.read()
+        argv, timeout = seen[0]
+        self.assertEqual(argv[: len(memory_sync.SSH)], memory_sync.SSH)
+        self.assertIn("BatchMode=yes", argv)
+        self.assertEqual(argv[len(memory_sync.SSH)], memory_sync.REMOTE_HOST)
+        self.assertLessEqual(timeout, memory_sync.TOTAL_SECONDS)
+
+    def test_spent_deadline_counts_as_unreachable(self) -> None:
+        with self.assertRaises(memory_sync.Unreachable):
+            memory_sync.Deadline(0).remaining()
 
     def test_lost_during_the_write_keeps_the_state(self) -> None:
         self.in_step(a="one")
@@ -445,6 +498,25 @@ class Running(SyncCase):
         self.run_sync()
         files = json.loads(self.paths.state.read_text())["files"]
         self.assertEqual(files, {"a.md": memory_sync.digest_of(b"one")})
+
+
+class LocalFolder(unittest.TestCase):
+    def test_found_through_the_symlink_from_the_main_checkout(self) -> None:
+        main = Path(__file__).resolve().parent.parent
+        key = "".join(ch if ch.isalnum() else "-" for ch in str(main))
+        with tempfile.TemporaryDirectory() as holder:
+            base = Path(holder).resolve()
+            real = base / "work" / "memory"
+            real.mkdir(parents=True)
+            project = base / "config" / "projects" / key
+            project.mkdir(parents=True)
+            (project / "memory").symlink_to(real)
+            found = memory_sync.local_memory_folder(base / "config", memory_sync.Deadline(10))
+        self.assertEqual(found, real)
+
+    def test_missing_folder_is_none(self) -> None:
+        with tempfile.TemporaryDirectory() as holder:
+            self.assertIsNone(memory_sync.local_memory_folder(Path(holder), memory_sync.Deadline(10)))
 
 
 class Gate(unittest.TestCase):
