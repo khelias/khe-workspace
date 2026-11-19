@@ -25,7 +25,7 @@ it working and Close out stay there, since they apply to every change.
   `docs/decisions/`; khe-homelab's `docs/service-choices.md`). Writing it
   is a step of the plan, Accepted on the day the operator approves the
   plan; a changed Accepted decision gets a superseding ADR in the same
-  way. A plan in the area of a Proposed ADR says whether it accepts,
+  way, or the in-place edit `AGENTS.md` "Code and docs" allows. A plan in the area of a Proposed ADR says whether it accepts,
   changes or leaves it, and why.
   After writing the plan file and before handing over the `/goal` line,
   have a subagent without this conversation review it: what does the plan

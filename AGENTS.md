@@ -150,7 +150,8 @@ it unasked; a one-off correction goes to memory.
   `docs/*.md`, and fix what is now wrong in the same commit. The test: would a
   fresh agent form a misleading picture? A judgement call, not a hard rule.
   An affected ADR gets a new ADR that supersedes it, or a fix to its Status
-  line or links, never an edit of its decision.
+  line or links. Its decision is edited in place only while nothing built
+  since depends on the part that changes, with a dated note in its Status.
 - A structural change (named library bump, moved files, new decision,
   changed build/test/deploy command, new invariant) updates that repo's
   `AGENTS.md` in the same commit.
