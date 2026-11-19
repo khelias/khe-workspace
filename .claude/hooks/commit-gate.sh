@@ -4,9 +4,10 @@
 # commit may include code (anything but md, txt, pdf and images), then scan
 # what the commit adds for personal-data patterns (.claude/hooks/pii-rules.toml,
 # skipped for repos marked `private: true` in repos/repos.yaml), then run that
-# repo's `check:` command. Any of them failing blocks the commit (exit 2,
-# output to stderr), as does a commit whose repo it cannot resolve or that is
-# an unlisted repo inside the workspace. The review is a `Skill` call to
+# repo's `check:` command, on the nvm default Node when nvm is installed.
+# Any of them failing blocks the commit (exit 2, output to stderr), as does a
+# commit whose repo it cannot resolve or that is an unlisted repo inside the
+# workspace. The review is a `Skill` call to
 # code-review in the session transcript; prefixing the commit with
 # KHE_REVIEW_SKIP="<reason>" skips only that check. In a repo marked
 # `pr: true` it first refuses a commit on the default branch or a detached
@@ -367,6 +368,37 @@ review_state() {
 tmp_root="$(mktemp -d)" && [[ -d "$tmp_root" ]] || fail "no temporary directory for the personal-data scan"
 trap 'rm -r -f -- "$tmp_root"' EXIT
 
+# The desktop app hands hooks a PATH with every nvm version on it, oldest
+# first, so a check would run on whatever Node is installed earliest. Run it
+# on the nvm default instead, as a terminal does; without nvm, PATH stands.
+node_bin_dir=unset
+resolve_nvm_default() {
+    [[ "$node_bin_dir" == unset ]] || return 0
+    node_bin_dir=""
+    local nvm="${NVM_DIR:-$HOME/.nvm}" v="" d key bkey=-1 i
+    local f="$nvm/alias/default"
+    for i in 1 2 3 4; do
+        [[ -f "$f" && -r "$f" ]] || return 0
+        read -r v < "$f" || [[ -n "$v" ]] || return 0
+        [[ "$v" == lts/* ]] || break
+        f="$nvm/alias/$v"
+    done
+    case "$v" in
+        node|stable) set -- "$nvm/versions/node/v"* ;;
+        *)
+            v="${v#v}"
+            [[ "$v" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]] || return 0
+            set -- "$nvm/versions/node/v$v"{,.*}
+            ;;
+    esac
+    for d in "$@"; do
+        [[ -x "$d/bin/node" && "${d##*/v}" =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]] || continue
+        key=$((10#${BASH_REMATCH[1]} * 1000000 + 10#${BASH_REMATCH[2]} * 1000 + 10#${BASH_REMATCH[3]}))
+        (( key > bkey )) && node_bin_dir="$d/bin" bkey=$key
+    done
+    return 0
+}
+
 gate() {
     local dir="$1"
     repo_of "$dir" || return 0
@@ -517,7 +549,8 @@ gate() {
     check="$(yaml_key check)"
     [[ -n "$check" ]] || return 0
 
-    if ! out="$(cd "$top" && bash -c "$check" 2>&1)"; then
+    resolve_nvm_default
+    if ! out="$(cd "$top" && PATH="${node_bin_dir:+$node_bin_dir:}$PATH" bash -c "$check" 2>&1)"; then
         {
             echo "commit-gate: '$check' failed in $label; commit blocked."
             echo "Fix the failure, then commit again. Last lines of output:"
