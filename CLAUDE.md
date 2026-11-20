@@ -40,6 +40,12 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   numbers on khe.ee/agents (estate ADR-044), and the removal of the task's
   own worktrees. A small fix with no plan and no roadmap entry does only
   the removal.
+- **Ask with the question card.** When a turn would end on a choice that
+  is the operator's (two to four options, which variant, may I push), ask
+  it with `AskUserQuestion`, the recommended option first, not as a prose
+  list; likewise before work whose direction is still open. Not for what
+  the code or a sensible default answers, and not mid-`/goal` unless the
+  run is blocked.
 
 ## Harness facts
 
