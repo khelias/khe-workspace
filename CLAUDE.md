@@ -144,10 +144,10 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   scripts run as `/home/khe/khe/repos/khe-home-assistant/.venv/bin/python
   scripts/ha-ws.py '<json>'` from the checkout. The K2 printer's two
   commands, `k2.py` and `k2_camera.py` from the root-owned
-  `/usr/local/lib/khe/k2/`, run the same way (estate ADR-050); `openscad`
-  and `orca-slicer`, reached through khe-meta's `k2_slice.py`, which checks
-  the fans, run in the sandbox without asking. Their exact forms are in the
-  runbook's "Sandbox". There is no browser pane and
+  `/usr/local/lib/khe/k2/`, run the same way through `/usr/bin/python3`
+  (estate ADR-050); `openscad`, and `orca-slicer` through khe-meta's
+  `k2_slice.py`, which checks the fans, run in the sandbox without asking.
+  Their exact forms are in the runbook's "Sandbox". There is no browser pane and
   no Claude in Chrome: Playwright's Chromium is in `~/.cache/ms-playwright`,
   used from a repo that has Playwright, with the static server in the same
   call because a sandboxed command's localhost is its own (the command is
