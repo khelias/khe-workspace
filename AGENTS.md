@@ -149,21 +149,25 @@ it unasked; a one-off correction goes to memory.
   repo's and the root's `AGENTS.md`/`CLAUDE.md`, affected ADRs and overlapping
   `docs/*.md`, and fix what is now wrong in the same commit. The test: would a
   fresh agent form a misleading picture? A judgement call, not a hard rule.
-  An affected ADR gets a new ADR that supersedes it, or a fix to its Status
-  line or links. Its decision is edited in place only while nothing built
-  since depends on the part that changes, with a dated note in its Status.
+  An affected ADR is amended in place, with its Status date moved to that
+  day, when the change extends, narrows or makes an exception to it; a
+  reversal gets a new ADR and leaves the old one as a Superseded stub, and a
+  decision that moves to one repo's docs leaves a Moved stub
+  (khe-architecture `AGENTS.md` Rules 3 and 4).
 - A structural change (named library bump, moved files, new decision,
   changed build/test/deploy command, new invariant) updates that repo's
   `AGENTS.md` in the same commit.
-- **Link, don't restate**
-  ([estate ADR-024](https://github.com/khelias/khe-architecture/blob/main/decisions/024-one-source-per-agent-rule.md)).
-  Each rule has one home and every other file cites it: the decision in the
-  estate ADR, workspace-wide agent behaviour here, Claude-harness facts
-  (gate, sandbox, skills) in `CLAUDE.md`, a shared tool's usage in its
-  owning repo's `AGENTS.md` (the design check in khe-ui, VM operations in
-  khe-homelab), repo set-up in `ESTATE.md` "Adding a repo". A repo's
-  `AGENTS.md` holds only what is particular to it, cites the ADR as estate
-  ADR-NNN with a link, and opens with a pointer to this file.
+- **Link, don't restate.** Each rule has one home and every other file
+  cites it: the decision in the estate ADR, workspace-wide agent behaviour
+  here, Claude-harness facts (gate, sandbox, skills) in `CLAUDE.md`, a
+  shared tool's usage in its owning repo's `AGENTS.md` (the design check in
+  khe-ui, VM operations in khe-homelab), repo set-up in `ESTATE.md` "Adding
+  a repo". Copies drift, and an agent cannot tell which one is current;
+  copying a rule into every repo it constrains made each decision a sweep.
+  A repo's `AGENTS.md` holds only what is particular to it (a path, an
+  exemption, a check, a deviation), cites the ADR as estate ADR-NNN with a
+  link, and opens with a pointer to this file, so a session started inside
+  one repo still finds the workspace rules.
 - An estate ADR that becomes Accepted updates the one home of its rule, and
   a repo's `AGENTS.md` only where something particular to that repo changes
   (a path, an exemption, a check, a deviation).

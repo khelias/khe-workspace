@@ -152,9 +152,10 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   MCP server, beside Grafana's in the root-owned
   `/etc/claude-code/managed-mcp.json`, which no session can add to: its
   reads, light, camera and upload run without asking, and `print` asks on
-  every call (estate ADR-051); `openscad`, and `orca-slicer` through
+  every call; `openscad`, and `orca-slicer` through
   khe-meta's `k2_slice.py`, which checks the fans, run in the sandbox
-  without asking. The tools are in the runbook's "MCP servers". There is no browser pane and
+  without asking. The tools and why only `print` asks are in the runbook's
+  "MCP servers". There is no browser pane and
   no Claude in Chrome: Playwright's Chromium is in `~/.cache/ms-playwright`,
   used from a repo that has Playwright, with the static server in the same
   call because a sandboxed command's localhost is its own (the command is

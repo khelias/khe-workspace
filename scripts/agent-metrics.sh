@@ -295,6 +295,14 @@ for f in "$tmp"/runs.*.err; do [[ -f "$f" ]] && note "gh" "$(cat "$f")"; done
 
 since_day="$(jq -rn --argjson s "$since_s" '$s | todate[:10]')"
 
+# The --json snapshot has exactly these keys, in this order (estate ADR-044):
+# since and until (dates); plans; planReview, planCheck, codeReview and
+# securityReview, each with acted, dropped, notRun and pending; operator (the
+# owner's own review) with acted, notRun and pending; push with unchanged,
+# changed, discarded and pending; pushedPlans and revertedPlans; planToPush
+# with count and medianMinutes. Every value but the two dates is a whole
+# number. khe-architecture's check and khe-sites' build reject any other
+# shape, so a key change here changes both.
 if [[ -n "$json" ]]; then
     arr() { local IFS=,; printf '[%s]' "$*"; }
     jq -n \

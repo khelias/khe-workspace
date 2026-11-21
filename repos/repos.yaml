@@ -73,7 +73,7 @@ repos:
   - name: khe-deals-watches
     url: https://github.com/khelias/khe-deals-watches.git
     private: true
-    description: The family's deal watches, validated by khe-deals (estate ADR-039).
+    description: The family's deal watches, validated by khe-deals (khe-deals ADR-001).
   - name: ha-estfeed
     url: https://github.com/khelias/ha-estfeed.git
     check: .venv/bin/ruff check custom_components tests && .venv/bin/ruff format --check custom_components tests && .venv/bin/mypy && .venv/bin/python -m pytest tests -q --cov=custom_components/estfeed --cov-fail-under=85

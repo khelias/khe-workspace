@@ -22,11 +22,15 @@ it working and Close out stay there, since they apply to every change.
   picks between real alternatives, and spans two or more repos or decides
   which repo owns a concern (estate ADR in `khe-architecture/decisions/`),
   or shapes one repo's architecture (that repo's `docs/adr/` or
-  `docs/decisions/`; khe-homelab's `docs/service-choices.md`). Writing it
-  is a step of the plan, Accepted on the day the operator approves the
-  plan; a changed Accepted decision gets a superseding ADR in the same
-  way, or the in-place edit `AGENTS.md` "Code and docs" allows. A plan in the area of a Proposed ADR says whether it accepts,
-  changes or leaves it, and why.
+  `docs/decisions/`; khe-homelab's `docs/service-choices.md`). Not an
+  estate ADR: an exception to an estate rule (a point of that ADR), one
+  repo's design, one machine's set-up (its runbook) or an agent convention
+  (`AGENTS.md`, `CLAUDE.md`). Amend an existing ADR before writing a new
+  one: an extension, narrowing or exception edits it in place, and only a
+  reversal gets a new ADR (khe-architecture `AGENTS.md` Rules 2 and 4).
+  Writing it is a step of the plan, Accepted on the day the operator
+  approves the plan. A plan in the area of a Proposed ADR says whether it
+  accepts, changes or leaves it, and why.
   After writing the plan file and before handing over the `/goal` line,
   have a subagent without this conversation review it: what does the plan
   get wrong or leave out that would break the goal or correctness, and
