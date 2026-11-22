@@ -10,7 +10,9 @@ under `repos/`, and the AI-agent configuration sits here, once.
 khe-workspace/
   AGENTS.md              personal preferences, tool-agnostic
   CLAUDE.md              imports AGENTS.md and the estate index
+  GEMINI.md              Antigravity entry point and harness facts
   .claude/               settings, the commit gate and the session-start hook
+  .agents/               Antigravity shared skills pointer and commit-gate adapter
   repos/repos.yaml       the repos this workspace clones, with their checks
   repos/<name>/          independent clones, gitignored
   scripts/workspace.sh   clone | pull | status | sync | running
