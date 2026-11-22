@@ -25,6 +25,12 @@
       "description": "Automerge digest and pin updates",
       "matchUpdateTypes": ["digest", "pin"],
       "automerge": true
+    },
+    {
+      "description": "Actions releases wait three days. Pins have no release date and are left out.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["major", "minor", "patch", "digest"],
+      "minimumReleaseAge": "3 days"
     }
   ]
 }

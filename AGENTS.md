@@ -186,8 +186,8 @@ it unasked; a one-off correction goes to memory.
   automation that acts) puts it in the writer register in khe-meta's
   `AMBITIONS.md` in the same change
   ([estate ADR-007](https://github.com/khelias/khe-architecture/blob/main/decisions/007-automated-writers.md)).
-  This root's own Renovate automerge (Actions minor and patch, digests, pins)
-  is undone by reverting its commit on `main`.
+  This root's own Renovate automerge (Actions minor and patch once three days
+  old, digests, pins) is undone by reverting its commit on `main`.
 - Every web app runs `khe-design-lint` from `@khelias/ui` in its lint
   ([estate ADR-035](https://github.com/khelias/khe-architecture/blob/main/decisions/035-family-shell-and-design-check-with-its-exceptions.md)),
   against a committed baseline that only shrinks; its usage is in khe-ui
