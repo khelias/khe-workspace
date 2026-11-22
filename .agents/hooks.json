@@ -1,4 +1,13 @@
 {
+  "session-start": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "./hooks/session-start-adapter.sh",
+        "timeout": 20
+      }
+    ]
+  },
   "commit-gate": {
     "PreToolUse": [
       {

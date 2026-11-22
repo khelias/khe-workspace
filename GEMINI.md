@@ -23,6 +23,10 @@ alongside this file.
   review subagent (`invoke_subagent`) inspect the diff, fix confirmed findings, then commit
   with `KHE_REVIEW_SKIP="antigravity review subagent"` and report the findings and skip in
   the reply.
+- **Session start sync.** `.agents/hooks/session-start-adapter.sh` runs
+  `scripts/workspace.sh sync` and `running` on `SessionStart` (without Claude's
+  `memory-sync.py`). Ask the operator before editing any repo listed under a
+  `**Running:**` plan.
 - **Shared skills.** `.agents/skills.json` loads `.claude/skills/` directly without copying.
 - **UI verification.** Start local dev servers via `run_command` (`IsDaemon: true`) and
   inspect mobile and desktop widths with the `browser` subagent.
