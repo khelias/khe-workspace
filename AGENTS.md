@@ -172,7 +172,7 @@ and quirks are in `CLAUDE.md` "Harness facts" and `GEMINI.md`.
   hook, which Claude Code's hook and Antigravity's adapter both run (Codex
   has none yet), fast-forwards each repo under `repos/` that is on a clean
   `main` (`scripts/workspace.sh sync`). The root is never fast-forwarded,
-  since its hooks run with the session's own rights: `behind` asks for a pull after
+  since its hooks run outside the sandbox: `behind` asks for a pull after
   reading what changed. It prints only what needs a look: `missing`,
   `branch`, `dirty`, `ahead` and `failed` name a repo it did not update,
   `npm ci` one it updated whose lock file changed. A `**Running:**` line it
