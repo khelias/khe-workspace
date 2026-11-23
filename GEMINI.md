@@ -19,10 +19,10 @@ alongside this file.
   each repo's `check:` run before every commit or push.
 - **Code review before a code commit.** Because Antigravity has no Claude `/code-review`
   skill in its transcript, `.claude/hooks/commit-gate.sh` blocks code commits unless
-  prefixed with `KHE_REVIEW_SKIP="<reason>"`. Before committing code here, have a fresh
-  review subagent (`invoke_subagent`) inspect the diff, fix confirmed findings, then commit
-  with `KHE_REVIEW_SKIP="antigravity review subagent"` and report the findings and skip in
-  the reply.
+  prefixed with `KHE_REVIEW_SKIP="<reason>"`. Before committing code here, invoke the
+  `code-reviewer` subagent (`.agents/agents/code-reviewer.md`) over the diff, verify and
+  fix confirmed findings, then commit with `KHE_REVIEW_SKIP="antigravity code-reviewer"`
+  and report the findings and skip in the reply.
 - **Session start sync.** `.agents/hooks/session-start-adapter.sh` runs
   `scripts/workspace.sh sync` and `running` on `SessionStart` (without Claude's
   `memory-sync.py`). Ask the operator before editing any repo listed under a
