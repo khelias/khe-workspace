@@ -13,7 +13,8 @@
 # commit with KHE_REVIEW_SKIP="<reason>" skips only that check. Any call that
 # skips git hooks (--no-verify or -n on commit, --no-verify on push, a
 # core.hooksPath override) is refused first, by hook-bypass.awk beside this
-# script, which lists the forms it reads.
+# script, which lists the forms it reads; a git commit or push it finds that
+# this script cannot place is refused too.
 # In a repo marked
 # `pr: true` it first refuses a commit on the default branch or a detached
 # HEAD, since agent work reaches main there through a pull request (estate
@@ -36,42 +37,53 @@ root="${CLAUDE_PROJECT_DIR:-$cwd}"
 git_core='git(([[:space:]]+(-[Cc][[:space:]]+[^[:space:]]+|-[A-Za-z]|--[A-Za-z][-A-Za-z]*(=[^[:space:]]+)?))*)[[:space:]]+'
 git_re="(^|[;&|(\`[:space:]/])${git_core}"
 
-# Matching runs on one line with heredoc bodies dropped and every quoted string
-# that holds a space replaced by Q: a message or PR body that mentions a git
-# command must neither trigger nor block anything. Quoted paths keep their text.
-scan="$(awk '
-    skip { t = $0; gsub(/^[[:space:]]+|[[:space:]]+$/, "", t); if (t == delim) skip = 0; next }
-    { if (sub(/\\$/, "")) printf "%s ", $0; else printf "%s;", $0 }
-    match($0, /(^|[^<])<<-?[[:space:]]*["\047]?[A-Za-z_][A-Za-z0-9_]*/) {
-        delim = substr($0, RSTART, RLENGTH); sub(/^[^<]?<<-?[[:space:]]*["\047]?/, "", delim); skip = 1
-    }' <<<"$cmd" | awk '{
-    out = ""; q = ""; tok = ""
-    for (i = 1; i <= length($0); i++) {
-        c = substr($0, i, 1)
-        if (q == "") { if (c == "\"" || c == "\047") { q = c; tok = c } else out = out c; continue }
-        tok = tok c
-        if (q == "\"" && c == "\\") { i++; tok = tok substr($0, i, 1); continue }
-        if (c == q) { out = out (tok ~ /[[:space:];]/ ? "Q" : tok); q = "" }
-    }
-    print out (q == "" ? "" : "Q")
-}')"
-
 action=commit
 fail() { echo "commit-gate: $1; $action blocked." >&2; exit 2; }
 
-# The hook-bypass check reads $cmd itself, with its quotes, so the trigger is
-# loose and the awk decides. When the awk cannot run (missing or failing), a
-# call that may commit, push or set git config is blocked and any other passes.
-if [[ "$cmd" == *git* ]]; then
-    bypass_awk="${BASH_SOURCE[0]%/*}/hook-bypass.awk"
-    if ! bypass="$(awk -f "$bypass_awk" <<<"$cmd" 2>/dev/null)"; then
-        [[ "$scan" =~ ${git_re}(commit|push|config)([[:space:]]|;|\$) ]] &&
-            fail "$bypass_awk is missing or failing, so a hook bypass cannot be checked"
-    elif [[ -n "$bypass" ]]; then
-        echo "commit-gate: $bypass; blocked. Fix what the hook reports instead." >&2
-        exit 2
-    fi
+# hook-bypass.awk reads $cmd as the shell would, on every call since `g\it`
+# or `"g"it` runs git too. It refuses a hook bypass, names each git commit and
+# push, and prints $scan, the one line every rule below matches against: words
+# unquoted as the shell reads them, each command ended by ;, heredoc bodies and
+# comments dropped, and a quoted part holding a space or operator turned into Q,
+# so a message or PR body that mentions a git command neither triggers nor
+# blocks anything. When the awk cannot run (missing or failing), $scan is the
+# raw command and a call that may commit, push or set git config is blocked.
+bypass_awk="${BASH_SOURCE[0]%/*}/hook-bypass.awk"
+runs_commit=0 runs_push=0 scan=
+if ! awk_out="$(awk -f "$bypass_awk" <<<"$cmd" 2>/dev/null)"; then
+    scan="${cmd//$'\n'/;}"
+    [[ "$scan" =~ ${git_re}(commit|push|config)([[:space:]]|;|\$) ]] &&
+        fail "$bypass_awk is missing or failing, so a hook bypass cannot be checked"
+else
+    while IFS= read -r line; do
+        case "$line" in
+            "bypass "*)
+                echo "commit-gate: ${line#bypass }; blocked. Fix what the hook reports instead." >&2
+                exit 2
+                ;;
+            "nested "*)
+                action="${line#nested }"
+                fail "a git $action inside \$(...), backticks or <(...) runs in a subshell the gate cannot tie to a repo. Run it as a command of its own"
+                ;;
+            commit) runs_commit=$((runs_commit + 1)) ;;
+            push) runs_push=$((runs_push + 1)) ;;
+            "scan "*) scan="${line#scan }" ;;
+        esac
+    done <<<"$awk_out"
 fi
+# Refuses unless $scan matches $1 at least $2 times, once per git $3 the awk
+# found: one written in a form the regexes do not read would go unchecked.
+placed() {
+    local rest="$scan" n=0 m
+    while [[ $n -lt $2 && "$rest" =~ $1 ]]; do
+        m="${BASH_REMATCH[0]}"
+        n=$((n + 1))
+        rest="${rest#*"$m"}"
+    done
+    [[ $n -ge $2 ]] && return
+    action="$3"
+    fail "a git $3 in this call cannot be read: an option before '$3' is not one the gate reads. Write it as 'git [-C <dir>] $3'"
+}
 
 # Parallel sessions share each repo's working tree, so staging everything
 # sweeps another session's files into this commit. Stage by path.
@@ -309,6 +321,7 @@ while [[ "$rest" =~ $loose_push_re ]]; do
     [[ "$m" =~ $push_re ]] || refuse "the options between 'git' and 'push' cannot be read; write them as -C <dir> or cd there"
     rest="${rest#*"$m"}"
 done
+placed "$push_re" "$runs_push" push
 if [[ "$scan" =~ $push_re ]]; then
     action=push
     [[ "$scan" =~ $gitdir_env_re ]] &&
@@ -325,6 +338,7 @@ if [[ "$scan" =~ $push_re ]]; then
 fi
 
 commit_re="${git_re}commit([[:space:]]|;|\$)"
+placed "$commit_re" "$runs_commit" commit
 [[ "$scan" =~ $commit_re ]] || exit 0
 
 # The hook runs before the command, so a file force-added in the same call is
@@ -337,10 +351,11 @@ walk "$commit_re"
 
 # A deliberate skip must prefix the commit itself, alone or beside the other
 # skip in either order; on $scan a message or heredoc that mentions the
-# variable cannot trigger it. An empty value does not skip. A skip covers every
+# variable cannot trigger it. An empty value, which $scan reads with its
+# quotes dropped, does not skip. A skip covers every
 # repo the call commits in.
 review_skip= pr_skip=
-skip_re="(^|[;&|(])[[:space:]]*((KHE_[A-Z]+_SKIP=[^[:space:];&|]+[[:space:]]+)+)([^[:space:];&|]*/)?${git_core}commit([[:space:]]|;|\$)"
+skip_re="(^|[;&|(])[[:space:]]*((KHE_[A-Z]+_SKIP=[^[:space:];&|]*[[:space:]]+)+)([^[:space:];&|]*/)?${git_core}commit([[:space:]]|;|\$)"
 skip_set() {
     [[ "$1" =~ (^|[[:space:]])$2=([^[:space:]]+) ]] &&
         [[ "${BASH_REMATCH[2]}" != '""' && "${BASH_REMATCH[2]}" != "''" ]]

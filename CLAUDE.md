@@ -93,8 +93,12 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   `--config-env`, an included config file, `GIT_CONFIG_*` before a commit or
   push, `git config core.hooksPath`), behind any wrapper such as `timeout`
   or `xargs`. `.claude/hooks/hook-bypass.awk` reads them with shell quoting,
-  so a message or heredoc that only mentions one passes. Without that file a
-  call that commits, pushes or runs `git config` is blocked.
+  so a message or heredoc that only mentions one passes. The same awk reads
+  every Bash call for all the gate's rules, so a quoted, escaped or `$'...'`
+  subcommand (`git "commit"`, `git c\ommit`) is still a commit or push, and
+  one behind a git option the gate cannot read, or inside `$(...)`,
+  backticks or `<(...)`, is refused. Without that file
+  a call that commits, pushes or runs `git config` is blocked.
 - **The gate also scans for personal data** in every repo, the root
   included, unless `repos/repos.yaml` marks it `private: true`: lines the
   commit adds (staged, unstaged, untracked) and the message, against the

@@ -206,6 +206,42 @@ An odd " here, and the body quotes `git commit -n` and
 git push --no-verify, which the hook-bypass check must not read.
 EOF
 )"'
+# 8. A quoted, escaped or encoded subcommand is still a commit or push. priv-repo
+# has the untracked app.sh, so a commit there needs a review.
+gate_cmd "quoted \"commit\" needs a review" 2 'git "commit" -m x' "" "includes code"
+gate_cmd "quoted 'push' --force blocked" 2 "git 'push' --force origin feat" "" "rewrites the remote"
+gate_cmd "escaped c\\ommit needs a review" 2 'git c\ommit -m x' "" "includes code"
+gate_cmd "split co\"\"mmit needs a review" 2 'git co""mmit -m x' "" "includes code"
+gate_cmd "escaped g\\it commit needs a review" 2 'g\it commit -m x' "" "includes code"
+gate_cmd "quoted \"git\" commit needs a review" 2 '"git" commit -m x' "" "includes code"
+gate_cmd "ANSI-C \$'commit' needs a review" 2 "git \$'commit' -m x" "" "includes code"
+gate_cmd "hex-encoded c\\x6fmmit needs a review" 2 "git \$'c\\x6fmmit' -m x" "" "includes code"
+gate_cmd "octal-encoded --no-verify blocked" 2 "KHE_REVIEW_SKIP=test git commit \$'--no-veri\\146y' -m x" "" "skips git hooks"
+gate_cmd "commit after --git-dir <dir> needs a review" 2 'git --git-dir .git commit -m x' "" "includes code"
+gate_cmd "commit after a dashed heredoc needs a review" 2 $'cat <<END-OF\nx\nEND-OF\ngit commit -m x' "" "includes code"
+# shellcheck disable=SC2016
+gate_cmd "commit inside a quoted substitution refused" 2 'echo "$(git commit -m x)"' "" "subshell"
+gate_cmd "commented-out commit is not a commit" 0 'git status # git commit -m x'
+gate_cmd "unreadable git option before commit refused" 2 'KHE_REVIEW_SKIP=test git -pP commit -m x' "" "cannot be read"
+gate_cmd "2>&1 does not end the commit" 2 'KHE_REVIEW_SKIP=test git commit -m x 2>&1 --no-verify' "" "skips git hooks"
+# shellcheck disable=SC2016
+gate_cmd "cd inside a substitution does not move the commit" 2 'echo "$(cd /tmp)"; git commit -m x' "" "includes code"
+# shellcheck disable=SC2016
+gate_cmd "push inside a substitution refused" 2 'echo $(git push origin main); cd /tmp' "" "subshell"
+# shellcheck disable=SC2016
+gate_cmd "substitution inside arithmetic is read" 2 'echo $(( $(git commit -m x; echo 1) ))' "" "subshell"
+gate_cmd "NUL in \$'...' ends the word" 2 "git \$'commit\\0x' -m y" "" "includes code"
+gate_cmd "zsh =git is git" 2 '=git commit -m x' "" "includes code"
+gate_cmd "process substitution does not split the command" 2 'KHE_REVIEW_SKIP=test git commit -m x <(true) --no-verify' "" "skips git hooks"
+gate_cmd "heredoc delimiter with a space read whole" 2 $'cat <<"E O F"\nx\nE O F\ngit commit -m y' "" "includes code"
+gate_cmd "quoted > before & does not hide the next command" 2 'echo ">"&git commit --no-verify -m x' "" "skips git hooks"
+gate_cmd "--attr-source <tree> does not hide commit -n" 2 'git --attr-source HEAD commit -n -m x' "" "skips git hooks"
+gate_cmd "commit after --attr-source <tree> needs a review" 2 'git --attr-source HEAD commit -m x' "" "includes code"
+gate_cmd "quoted \"KHE_REVIEW_SKIP\" value still skips" 0 'KHE_REVIEW_SKIP="test" git "commit" -m x'
+gate_cmd "empty quoted KHE_REVIEW_SKIP does not skip" 2 'KHE_REVIEW_SKIP="" git commit -m x' "" "includes code"
+gate_cmd "message holding a quoted git commit passes" 0 "KHE_REVIEW_SKIP=test git commit -m 'run \"git commit\" first'"
+gate_cmd "quoted operator is not a command" 0 'echo "a&git" push origin main'
+
 mkdir -p "$tmp/noawk"
 cp "$ws/.claude/hooks/commit-gate.sh" "$tmp/noawk/commit-gate.sh"
 gate_cmd "missing hook-bypass.awk: non-git call passes" 0 'ls -la' "$tmp/noawk/commit-gate.sh"
