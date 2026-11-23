@@ -107,7 +107,7 @@ it with one line saying the numbers wait for the next retro.
   repos/khe-architecture commit -m "agent-loop numbers"` as a command of its
   own, and push after the `@{u}..` check in the root `AGENTS.md`. When it fails,
   restore the file as above and report the check's line. The closing message
-  names the review skip and its reason, as `CLAUDE.md` asks.
+  names the review skip and its reason, as `AGENTS.md` "Workspace hooks" asks.
 
 ## 8. Worktrees
 

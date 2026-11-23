@@ -29,10 +29,8 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   Skills can pin a model and whether this one does is unverified, so after
   a `sonnet` goal ask the operator to switch the session to `opus` first.
   Verify each finding against the code, fix the confirmed ones, and say
-  which were dropped. The commit gate blocks a code commit until a
-  `/code-review` has run in the session; a deliberate skip prefixes the
-  commit with `KHE_REVIEW_SKIP="<reason>"` and is reported to the operator
-  with the reason.
+  which were dropped. The review check and the deliberate skip are in
+  `AGENTS.md` "Workspace hooks".
 - **See it working** for UI changes: `/run` in the browser pane.
 - **Close out** a task after its last commit with the `retro` skill:
   the plan file's Status and Outcome, the roadmap entry it moves, a
@@ -49,80 +47,24 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
 
 ## Harness facts
 
-- **`git commit` in a repo is gated.** `.claude/hooks/commit-gate.sh` runs
-  that repo's `check:` before the commit and blocks it on failure. On the
-  laptop it runs the check on nvm's default Node and Homebrew's tools, and
-  the `node-path.sh` `SessionStart` hook puts the same two first in the Bash
-  tool's PATH, because the desktop app hands both a PATH with every nvm
-  version, oldest first, and `/usr/bin` (macOS's python3 3.9) before
-  Homebrew (`.claude/hooks/nvm-default.sh`; agent-vm has no Homebrew). Fix the
-  cause; never work around the gate. Do not run `check:` yourself right
-  before committing; the gate already does. It knows a repo listed in
-  `repos/repos.yaml` by its git common dir under `repos/` of the session
-  root or the main checkout, so a worktree of `repos/<name>` is gated
-  wherever it sits, else by a remote that is its `url:` or its checkout.
-  Any other repo inside the workspace is blocked; repos outside it, such as
-  scratch repos, pass.
-- **The gate requires a code review** before a commit that may include
-  code, in every gated repo, private ones included: any staged, unstaged or
-  untracked file other than `md txt pdf png jpg jpeg gif webp svg` (a file
-  without an extension is code; a rename counts both names). The evidence
-  is a `Skill` call to `code-review` in the session transcript or a
-  subagent's, once per session, or in Antigravity an `invoke_subagent` of
-  `code-reviewer`; a `/code-review` the operator types is
-  not recognised, so have Claude run it. It is checked before the personal-data scan and `check:`.
-  `KHE_REVIEW_SKIP="<reason>" git commit ...` skips only this check; an
-  empty value or a mention inside a message does not. No readable
-  transcript blocks a code commit. Another session's dirty files in the
-  same tree count too: work in a worktree.
-- **The gate keeps `pr: true` repos off `main`.** In a repo that
-  `repos/repos.yaml` marks `pr: true` (estate ADR-023) it refuses a commit
-  on `main`, the remote's default branch or a detached HEAD; the push
-  and PR for such a repo are in `AGENTS.md`. It runs before the command, so
-  `git switch -c x && git commit` in one call is checked against the old
-  branch: run the switch as a command of its own first.
-  `KHE_PR_SKIP="<reason>" git commit ...` skips only this rule, for an
-  emergency, and shows the reason to the operator; it may stand beside
-  `KHE_REVIEW_SKIP` in either order.
-- **The gate fails closed.** Its hook has `"onFailure": "block"`, so a
-  crash, a timeout or a missing script blocks every Bash call in every
-  root session, not just commits. It runs under macOS `/bin/bash` 3.2. If it
-  breaks, revert `.claude/settings.json` or the script by edit, not Bash.
-- **The gate refuses skipping git hooks**: `--no-verify` and `-n` on a
-  commit, `--no-verify` on a push, and core.hooksPath overrides (`-c` or
-  `--config-env`, an included config file, `GIT_CONFIG_*` before a commit or
-  push, `git config core.hooksPath`), behind any wrapper such as `timeout`
-  or `xargs`. `.claude/hooks/hook-bypass.awk` reads them with shell quoting,
-  so a message or heredoc that only mentions one passes. The same awk reads
-  every Bash call for all the gate's rules, so a quoted, escaped or `$'...'`
-  subcommand (`git "commit"`, `git c\ommit`) is still a commit or push, and
-  one behind a git option the gate cannot read, or inside `$(...)`,
-  backticks or `<(...)`, is refused. Without that file
-  a call that commits, pushes or runs `git config` is blocked.
-- **The gate also scans for personal data** in every repo, the root
-  included, unless `repos/repos.yaml` marks it `private: true`: lines the
-  commit adds (staged, unstaged, untracked) and the message, against the
-  gitleaks patterns in `.claude/hooks/pii-rules.toml` (MAC, isikukood,
-  phone, Estonian coordinates, e-mail, LAN address). Pattern-only: names
-  and street addresses are not caught and stay a judgement call. Commits
-  made by merge, cherry-pick, revert or rebase are not scanned, and a
-  same-call `git add -f` is refused: force-add first, then commit. A false
-  positive gets an allowlist entry with a reason in `pii-rules.toml`.
-- **Parallel sessions share each repo's working tree** (the rule is in
-  `AGENTS.md` "Who runs what"). The worktree is one of `repos/<name>`, not
-  a desktop worktree of the workspace root, which has no `repos/`; install
-  dependencies there before committing. The gate refuses `git add -A`,
-  `git add .`, `git add -u` and `git commit -a`, and a commit whose repo it
-  cannot resolve (a shell variable in `-C` or `cd`). It follows a `cd`,
-  `pushd` or `popd` only as far as the shell would: one in a subshell, a
-  pipeline or a `&` list ends there, and one that may not run (after `&&`
-  or `||`, inside `if`, `case` or a loop, at the end of a pipeline), like a
-  function definition or a `cd` it cannot read (behind `command`, `eval` or
-  an option, or as an argument), leaves a later git call without
-  `-C <absolute path>` refused. Put the `cd` first in the call or use
-  `git -C`.
-  A plan file in `repos/khe-meta/plans/` is committed by its own path, in its
-  own commit.
+The rules every harness's hooks enforce are in `AGENTS.md` "Workspace
+hooks"; below is what is Claude Code's own.
+
+- **The gate runs as a `PreToolUse` hook on every Bash call** with
+  `"onFailure": "block"`, so a crash, a timeout or a missing script blocks
+  every Bash call in every root session, not just commits. It runs under
+  macOS `/bin/bash` 3.2. If it breaks, revert `.claude/settings.json` or the
+  script by edit, not Bash. A `/code-review` the operator types is not
+  recognised as the review, so have Claude run it. `KHE_PR_SKIP`'s reason
+  shows as a message to the operator.
+- **The laptop's PATH.** The gate runs `check:` on nvm's default Node and
+  Homebrew's tools, and the `node-path.sh` `SessionStart` hook puts the same
+  two first in the Bash tool's PATH, because the desktop app hands both a
+  PATH with every nvm version, oldest first, and `/usr/bin` (macOS's python3
+  3.9) before Homebrew (`.claude/hooks/nvm-default.sh`; agent-vm has no
+  Homebrew).
+- **Parallel sessions' worktree** is one of `repos/<name>`, not a desktop
+  worktree of the workspace root, which has no `repos/`.
 - **Skills in `repos/<name>/.claude/skills/` do not load from here**
   (gitignored directories are skipped). A needed skill goes in this repo's
   `.claude/skills/`, scoped with `paths:` when it belongs to one area.
@@ -153,63 +95,32 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   Deleting config entries and bulk enable/disable scripts are stopped by the
   auto mode classifier, not a rule, so the outcome varies; inline Python on
   named entities passes.
-- **The personal instance also runs on agent-vm**, a Debian VM with the
-  workspace cloned to `~/khe`
-  ([khe-homelab `infrastructure/agent-vm.md`](https://github.com/khelias/khe-homelab/blob/main/infrastructure/agent-vm.md)).
-  There the config dir is the default `~/.claude`, bash is 5 with gawk and
-  upstream gitleaks, the gate runs unchanged (its push cases checked there
-  2026-11-14) and Bash runs in a strict sandbox (estate ADR-027): no
-  `dangerouslyDisableSandbox` retry, outbound to GitHub, npm, PyPI,
-  Anthropic, Debian and Hinnavaatlus (for khe-deals) only, `~/.ssh` and
-  `~/.config/khe` unreadable; git,
-  `git push` and `gh` work inside it. Sessions start in auto mode; `ssh`,
-  `scp` and the HA scripts run outside the sandbox only when the call holds
-  that one command (no `cd`, pipe or redirect), and each asks the operator,
-  so a docker-vm command or an HA write waits for a tap on the phone. The HA
-  scripts run as `/home/khe/khe/repos/khe-home-assistant/.venv/bin/python
-  scripts/ha-ws.py '<json>'` from the checkout. The K2 printer is the `k2`
-  MCP server, beside Grafana's in the root-owned
-  `/etc/claude-code/managed-mcp.json`, which no session can add to: its
-  reads, light, camera and upload run without asking, and `print` asks on
-  every call; `openscad`, and `orca-slicer` through
-  khe-meta's `k2_slice.py`, which checks the fans, run in the sandbox
-  without asking. The tools and why only `print` asks are in the runbook's
-  "MCP servers". There is no browser pane and
-  no Claude in Chrome: Playwright's Chromium is in `~/.cache/ms-playwright`,
-  used from a repo that has Playwright, with the static server in the same
-  call because a sandboxed command's localhost is its own (the command is
-  in khe-homelab `infrastructure/agent-vm.md` "Sandbox"), then read the
-  image. Jobs that run without the operator are GitHub-hosted Actions, never
-  agent-vm: the weekly digest in khe-homelab first.
-  Its memory folder is keyed by the VM's workspace path, not the laptop's.
-  Parallel sessions there use `repos/<name>` worktrees as above. Projects
-  reached the account on 2026-11-16 (project "KHE"): a claude.ai Projects
-  task runs there only as a local thread, in `~/khe`: a cloud thread reads just
-  `CLAUDE.md`, so it has no gate and no skills, and the project's
-  instructions (`projects/khe-instructions.md`) forbid it. The laptop's
-  personal instance is the fallback when the VM is down.
-- **The gate also checks pushes** (estate ADR-023): it refuses any force
-  push (`--force*`, `-f`, `--mirror`, a `+ref`), deleting `main` or
-  `--prune` in any repo, a push that moves `main` of a `pr: true` repo (a
-  bare `git push` there from `main` included), a
-  tag push matching a repo's `release_tag:` (khe-ui) and `gh pr merge
-  --admin`. It also refuses a push it cannot read (a value from a variable,
-  `GIT_DIR`, any global option before `push` but `-C`, or `HEAD` after a
-  branch switch in the same call) and one that could run a command of its
-  choosing (`--receive-pack`, `--exec`, `GIT_SSH*`, `GIT_CONFIG_*`, an
-  ASKPASS). It reads the command line only: a git command inside a quoted
-  string with spaces (`ssh "..."`, `bash -c '...'`), a script or an alias is
-  not seen, so never commit or push on docker-vm.
-- **Every session start brings the machines into step.** The `SessionStart`
-  hook `.claude/hooks/session-start.sh` fast-forwards each repo under
-  `repos/` that is on a clean `main` (`scripts/workspace.sh sync`) and, from
-  the laptop's personal instance, syncs this workspace's memory with agent-vm
-  (`scripts/memory-sync.py`). The root is never fast-forwarded, since its
-  hooks run outside the sandbox: `behind` asks for a pull after reading what
-  changed. It prints only what needs a look: `missing`, `branch`, `dirty`,
-  `ahead` and `failed` name a repo it did not update, `npm ci` one it updated
-  whose lock file changed, and a `memory sync:` line the notes that came
-  from agent-vm, a note that differed on both machines or a sync that
-  stopped. A
-  `**Running:**` line it lists means a plan is changing the repos it names:
-  ask the operator before changing one of them.
+- **The personal instance also runs on agent-vm**, a Debian VM with the workspace cloned
+  to `~/khe` ([khe-homelab
+  `infrastructure/agent-vm.md`](https://github.com/khelias/khe-homelab/blob/main/infrastructure/agent-vm.md)).
+  There the config dir is the default `~/.claude`, bash is 5 with gawk and upstream
+  gitleaks, the gate runs unchanged and Bash runs in a strict sandbox (estate ADR-027):
+  no `dangerouslyDisableSandbox` retry, outbound to GitHub, npm, PyPI, Anthropic, Debian
+  and Hinnavaatlus only, `~/.ssh` and `~/.config/khe` unreadable; git, `git push` and
+  `gh` work inside it. Sessions start in auto mode; `ssh`, `scp` and the HA scripts run
+  outside the sandbox only when the call holds that one command (no `cd`, pipe or
+  redirect), and each asks the operator, so a docker-vm command or an HA write waits for
+  a tap on the phone. The K2 printer is the `k2` MCP server: its `print` asks on every
+  call and no other tool of that server does; `openscad`, and `orca-slicer` through khe-meta's
+  `k2_slice.py`, which checks the fans, run in the sandbox without asking. There is no
+  browser pane and no Claude in Chrome: Playwright's Chromium is in
+  `~/.cache/ms-playwright`, used from a repo that has Playwright, with the static server
+  in the same call because a sandboxed command's localhost is its own (the runbook's
+  "Sandbox" has the command). Jobs that run without the operator are GitHub-hosted
+  Actions, never agent-vm. Its memory folder is keyed by the VM's workspace path, not
+  the laptop's, and parallel sessions use `repos/<name>` worktrees (`AGENTS.md`
+  "Workspace hooks"). A claude.ai Projects task (project "KHE") runs there only as a
+  local thread, in `~/khe`: a cloud thread reads just `CLAUDE.md`, so it has no gate and
+  no skills, and the project's instructions (`projects/khe-instructions.md`) forbid it.
+  The laptop's personal instance is the fallback when the VM is down.
+- **Session start in Claude Code.** The `SessionStart` hook
+  `.claude/hooks/session-start.sh` runs the sync in `AGENTS.md` "Workspace
+  hooks" and, from the laptop's personal instance, syncs this workspace's
+  memory with agent-vm (`scripts/memory-sync.py`); a `memory sync:` line
+  names the notes that came from agent-vm, a note that differed on both
+  machines or a sync that stopped.

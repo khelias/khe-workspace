@@ -39,9 +39,6 @@ instance), the operator runs them from a handover:
   working tree. Run `git status` in the repo before the first edit; if it
   shows changes this session did not make, work in a worktree of
   `repos/<name>`. Stage by path, never everything.
-- A harness that cannot load the workspace commit gate, Codex today, reads
-  and advises but does not commit or push in the estate
-  ([estate ADR-023](https://github.com/khelias/khe-architecture/blob/main/decisions/023-agent-pushes-where-its-session-allows.md)).
 - Commit locally as normal. Right before a push, `git fetch` that repo and
   confirm the branch is not behind its upstream, then list `git log
   --oneline @{u}..` and stop on any commit this session did not make: the
@@ -80,6 +77,107 @@ instance), the operator runs them from a handover:
 - Ask clarifying questions before writing, not after a first draft has
   shipped: every iteration costs a deploy.
 - Read-only APIs (Home Assistant, GitHub) the agent uses directly.
+
+## Workspace hooks
+
+What the workspace's hooks enforce binds every harness that loads them:
+Claude Code, and Antigravity through its adapter. Each harness's own wiring
+and quirks are in `CLAUDE.md` "Harness facts" and `GEMINI.md`.
+
+- A harness that cannot load the workspace commit gate, Codex today, reads
+  and advises but does not commit or push in the estate
+  ([estate ADR-023](https://github.com/khelias/khe-architecture/blob/main/decisions/023-agent-pushes-where-its-session-allows.md)).
+- The gate is `.claude/hooks/commit-gate.sh`, with `hook-bypass.awk` and
+  `pii-rules.toml` beside it. Claude Code runs it as a hook on every Bash
+  call; Antigravity runs it through `.agents/hooks/commit-gate-adapter.sh`.
+- **`git commit` in a repo is gated.** The gate runs that repo's `check:`
+  before the commit and blocks it on failure. Fix the cause; never work
+  around the gate. Do not run `check:` yourself right before committing;
+  the gate already does. It knows a repo listed in `repos/repos.yaml` by its
+  git common dir under `repos/` of the session root or the main checkout,
+  so a worktree of `repos/<name>` is gated wherever it sits, else by a
+  remote that is its `url:` or its checkout. Any other repo inside the
+  workspace is blocked; repos outside it, such as scratch repos, pass.
+- **The gate requires a code review** before a commit that may include
+  code, in every gated repo, private ones included: any staged, unstaged or
+  untracked file other than `md txt pdf png jpg jpeg gif webp svg` (a file
+  without an extension is code; a rename counts both names). The evidence
+  is read from the session transcript, once per session: in Claude Code a
+  `Skill` call to `code-review`, in the transcript or a subagent's, in
+  Antigravity an `invoke_subagent` of `code-reviewer`. It is checked before
+  the personal-data scan and `check:`. `KHE_REVIEW_SKIP="<reason>" git
+  commit ...` skips only this check; an empty value or a mention inside a
+  message does not. A deliberate skip is reported to the operator with its
+  reason. No readable transcript blocks a code commit. Another session's
+  dirty files in the same tree count too: work in a worktree.
+- **The gate keeps `pr: true` repos off `main`.** In a repo that
+  `repos/repos.yaml` marks `pr: true` (estate ADR-023) it refuses a commit
+  on `main`, the remote's default branch or a detached HEAD; the push and PR
+  for such a repo are in "Who runs what". It runs before the command, so
+  `git switch -c x && git commit` in one call is checked against the old
+  branch: run the switch as a command of its own first.
+  `KHE_PR_SKIP="<reason>" git commit ...` skips only this rule, for an
+  emergency; the gate passes the reason to the harness, which shows it to
+  the operator in its own way. It may stand beside `KHE_REVIEW_SKIP` in
+  either order.
+- **The gate refuses rather than passes** when it cannot decide: a commit
+  whose repo it cannot resolve, a push or a call it cannot read. What a
+  harness's hook does when the gate itself fails is in that harness's file.
+- **The gate refuses skipping git hooks**: `--no-verify` and `-n` on a
+  commit, `--no-verify` on a push, and core.hooksPath overrides (`-c` or
+  `--config-env`, an included config file, `GIT_CONFIG_*` before a commit or
+  push, `git config core.hooksPath`), behind any wrapper such as `timeout`
+  or `xargs`. `hook-bypass.awk` reads them with shell quoting, so a message
+  or heredoc that only mentions one passes. The same awk reads every shell
+  command for all the gate's rules, so a quoted, escaped or `$'...'`
+  subcommand (`git "commit"`, `git c\ommit`) is still a commit or push, and
+  one behind a git option the gate cannot read, or inside `$(...)`,
+  backticks or `<(...)`, is refused. Without that file a call that commits,
+  pushes or runs `git config` is blocked.
+- **The gate also scans for personal data** in every repo, the root
+  included, unless `repos/repos.yaml` marks it `private: true`: lines the
+  commit adds (staged, unstaged, untracked) and the message, against the
+  gitleaks patterns in `pii-rules.toml` (MAC, isikukood, phone, Estonian
+  coordinates, e-mail, LAN address). Pattern-only: names and street
+  addresses are not caught and stay a judgement call. Commits made by
+  merge, cherry-pick, revert or rebase are not scanned, and a same-call
+  `git add -f` is refused: force-add first, then commit. A false positive
+  gets an allowlist entry with a reason in `pii-rules.toml`.
+- **Parallel sessions share each repo's working tree** (the rule is in "Who
+  runs what"). The worktree is one of `repos/<name>`; install dependencies
+  there before committing. The gate refuses `git add -A`, `git add .`,
+  `git add -u` and `git commit -a`, and a commit whose repo it cannot
+  resolve (a shell variable in `-C` or `cd`). It follows a `cd`, `pushd` or
+  `popd` only as far as the shell would: one in a subshell, a pipeline or a
+  `&` list ends there, and one that may not run (after `&&` or `||`, inside
+  `if`, `case` or a loop, at the end of a pipeline), like a function
+  definition or a `cd` it cannot read (behind `command`, `eval` or an
+  option, or as an argument), leaves a later git call without `-C <absolute
+  path>` refused. Put the `cd` first in the call or use `git -C`. A plan
+  file in `repos/khe-meta/plans/` is committed by its own path, in its own
+  commit.
+- **The gate also checks pushes** (estate ADR-023): it refuses any force
+  push (`--force*`, `-f`, `--mirror`, a `+ref`), deleting `main` or
+  `--prune` in any repo, a push that moves `main` of a `pr: true` repo (a
+  bare `git push` there from `main` included), a tag push matching a repo's
+  `release_tag:` (khe-ui) and `gh pr merge --admin`. It also refuses a push
+  it cannot read (a value from a variable, `GIT_DIR`, any global option
+  before `push` but `-C`, or `HEAD` after a branch switch in the same call)
+  and one that could run a command of its choosing (`--receive-pack`,
+  `--exec`, `GIT_SSH*`, `GIT_CONFIG_*`, an ASKPASS). It reads the command
+  line only: a git command inside a quoted string with spaces (`ssh
+  "..."`, `bash -c '...'`), a script or an alias is not seen, so never
+  commit or push on docker-vm.
+- **Every session start syncs the repos.** The session-start
+  hook, which Claude Code's hook and Antigravity's adapter both run (Codex
+  has none yet), fast-forwards each repo under `repos/` that is on a clean
+  `main` (`scripts/workspace.sh sync`). The root is never fast-forwarded,
+  since its hooks run with the session's own rights: `behind` asks for a pull after
+  reading what changed. It prints only what needs a look: `missing`,
+  `branch`, `dirty`, `ahead` and `failed` name a repo it did not update,
+  `npm ci` one it updated whose lock file changed. A `**Running:**` line it
+  lists means a plan is changing the repos it names: ask the operator
+  before changing one of them.
 
 ## Where the estate is described
 
@@ -166,8 +264,9 @@ it unasked; a one-off correction goes to memory.
   `AGENTS.md` in the same commit.
 - **Link, don't restate.** Each rule has one home and every other file
   cites it: the decision in the estate ADR, workspace-wide agent behaviour
-  here, Claude-harness facts (gate, sandbox, skills) in `CLAUDE.md`, a
-  shared tool's usage in its owning repo's `AGENTS.md` (the design check in
+  here, the workspace hooks' rules in "Workspace hooks" here, Claude Code's
+  harness facts (sandbox, instances, skills) in `CLAUDE.md`, Antigravity's
+  in `GEMINI.md`, a shared tool's usage in its owning repo's `AGENTS.md` (the design check in
   khe-ui, VM operations in khe-homelab), repo set-up in `ESTATE.md` "Adding
   a repo". Copies drift, and an agent cannot tell which one is current;
   copying a rule into every repo it constrains made each decision a sweep.
