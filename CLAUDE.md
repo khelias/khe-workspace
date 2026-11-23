@@ -126,6 +126,7 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
 - **Skills in `repos/<name>/.claude/skills/` do not load from here**
   (gitignored directories are skipped). A needed skill goes in this repo's
   `.claude/skills/`, scoped with `paths:` when it belongs to one area.
+  `.agents/skills` is a link to that directory, where Codex reads skills.
 - **Grep reaches `repos/` only through `.rgignore`**, which negates the
   `.gitignore` entry.
 - **The browser pane reads only this root's `.claude/launch.json`**

@@ -8,6 +8,7 @@
 *.local.toml
 *.local.json
 .claude/launch.json
+.codex/config.toml
 
 # Desktop worktrees of the workspace root
 .claude/worktrees/

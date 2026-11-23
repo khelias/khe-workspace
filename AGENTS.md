@@ -39,6 +39,9 @@ instance), the operator runs them from a handover:
   working tree. Run `git status` in the repo before the first edit; if it
   shows changes this session did not make, work in a worktree of
   `repos/<name>`. Stage by path, never everything.
+- A harness that cannot load the workspace commit gate, Codex today, reads
+  and advises but does not commit or push in the estate
+  ([estate ADR-023](https://github.com/khelias/khe-architecture/blob/main/decisions/023-agent-pushes-where-its-session-allows.md)).
 - Commit locally as normal. Right before a push, `git fetch` that repo and
   confirm the branch is not behind its upstream, then list `git log
   --oneline @{u}..` and stop on any commit this session did not make: the
