@@ -19,11 +19,6 @@
       "Bash(gh pr merge:*)",
       "Bash(gh pr update-branch:*)",
       "Bash(gh pr comment:*)"
-    ],
-    "deny": [
-      "Bash(git commit --no-verify:*)",
-      "Bash(git commit -n:*)",
-      "Bash(git push --no-verify:*)"
     ]
   },
   "hooks": {

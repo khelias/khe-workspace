@@ -13,20 +13,19 @@ alongside this file.
 ## Harness facts here
 
 - **Commits and pushes go through the same gate.** `.agents/hooks/commit-gate-adapter.sh`
-  wraps `.claude/hooks/commit-gate.sh` on `run_command` (plus blocks `--no-verify`, `-n`
-  and `-c core.hooksPath=...`), so `git add -A/./-u`, `git commit -a`, `pr: true` branch
-  protection, push restrictions (estate ADR-023), the `gitleaks` personal-data scan and
-  each repo's `check:` run before every commit or push.
-- **Code review before a code commit.** Because Antigravity has no Claude `/code-review`
-  skill in its transcript, `.claude/hooks/commit-gate.sh` blocks code commits unless
-  prefixed with `KHE_REVIEW_SKIP="<reason>"`. Before committing code here, invoke the
+  wraps `.claude/hooks/commit-gate.sh` on `run_command`, so every rule of the gate in
+  `CLAUDE.md` "Harness facts" applies here too, the hook-bypass check included.
+- **Code review before a code commit.** Before committing code, invoke the
   `code-reviewer` subagent (`.agents/agents/code-reviewer.md`) over the diff, verify and
-  fix confirmed findings, then commit with `KHE_REVIEW_SKIP="antigravity code-reviewer"`
-  and report the findings and skip in the reply.
+  fix confirmed findings, then commit. The gate reads that `invoke_subagent` call from
+  the session transcript as the review. `KHE_REVIEW_SKIP="<reason>"` stays a rare,
+  deliberate exception, reported to the operator with its reason.
 - **Session start sync.** `.agents/hooks/session-start-adapter.sh` runs
   `scripts/workspace.sh sync` and `running` on `SessionStart` (without Claude's
   `memory-sync.py`). Ask the operator before editing any repo listed under a
   `**Running:**` plan.
 - **Shared skills.** `.agents/skills.json` loads `.claude/skills/` directly without copying.
+  Where they name Claude tools: the question card is `ask_question`, a subagent is
+  `invoke_subagent`, and there is no `/goal`, so run a plan's steps and its checks directly.
 - **UI verification.** Start local dev servers via `run_command` (`IsDaemon: true`) and
   inspect mobile and desktop widths with the `browser` subagent.

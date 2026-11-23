@@ -68,7 +68,8 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   untracked file other than `md txt pdf png jpg jpeg gif webp svg` (a file
   without an extension is code; a rename counts both names). The evidence
   is a `Skill` call to `code-review` in the session transcript or a
-  subagent's, once per session; a `/code-review` the operator types is
+  subagent's, once per session, or in Antigravity an `invoke_subagent` of
+  `code-reviewer`; a `/code-review` the operator types is
   not recognised, so have Claude run it. It is checked before the personal-data scan and `check:`.
   `KHE_REVIEW_SKIP="<reason>" git commit ...` skips only this check; an
   empty value or a mention inside a message does not. No readable
@@ -87,6 +88,13 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   crash, a timeout or a missing script blocks every Bash call in every
   root session, not just commits. It runs under macOS `/bin/bash` 3.2. If it
   breaks, revert `.claude/settings.json` or the script by edit, not Bash.
+- **The gate refuses skipping git hooks**: `--no-verify` and `-n` on a
+  commit, `--no-verify` on a push, and core.hooksPath overrides (`-c` or
+  `--config-env`, an included config file, `GIT_CONFIG_*` before a commit or
+  push, `git config core.hooksPath`), behind any wrapper such as `timeout`
+  or `xargs`. `.claude/hooks/hook-bypass.awk` reads them with shell quoting,
+  so a message or heredoc that only mentions one passes. Without that file a
+  call that commits, pushes or runs `git config` is blocked.
 - **The gate also scans for personal data** in every repo, the root
   included, unless `repos/repos.yaml` marks it `private: true`: lines the
   commit adds (staged, unstaged, untracked) and the message, against the
@@ -96,13 +104,12 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   made by merge, cherry-pick, revert or rebase are not scanned, and a
   same-call `git add -f` is refused: force-add first, then commit. A false
   positive gets an allowlist entry with a reason in `pii-rules.toml`.
-- **Parallel sessions share each repo's working tree.** Run `git status` in
-  the repo before the first edit; if it shows changes this session did not
-  make, another session is there: work in a worktree of `repos/<name>`
-  (not a desktop worktree of the workspace root, which has no `repos/`) and
-  install dependencies there before committing. Stage by path: the gate
-  refuses `git add -A`, `git add .`, `git add -u` and `git commit -a`, and
-  a commit whose repo it cannot resolve (a shell variable in `-C` or `cd`).
+- **Parallel sessions share each repo's working tree** (the rule is in
+  `AGENTS.md` "Who runs what"). The worktree is one of `repos/<name>`, not
+  a desktop worktree of the workspace root, which has no `repos/`; install
+  dependencies there before committing. The gate refuses `git add -A`,
+  `git add .`, `git add -u` and `git commit -a`, and a commit whose repo it
+  cannot resolve (a shell variable in `-C` or `cd`).
   A plan file in `repos/khe-meta/plans/` is committed by its own path, in its
   own commit.
 - **Skills in `repos/<name>/.claude/skills/` do not load from here**

@@ -35,6 +35,10 @@ instance), the operator runs them from a handover:
   in khe-ui (it publishes to npm), fetching secrets, and the destructive
   operations under Boundaries. Never a force push, and never an admin merge
   past a pull request's required checks.
+- Agent sessions, Claude Code and Antigravity alike, share each repo's
+  working tree. Run `git status` in the repo before the first edit; if it
+  shows changes this session did not make, work in a worktree of
+  `repos/<name>`. Stage by path, never everything.
 - Commit locally as normal. Right before a push, `git fetch` that repo and
   confirm the branch is not behind its upstream, then list `git log
   --oneline @{u}..` and stop on any commit this session did not make: the

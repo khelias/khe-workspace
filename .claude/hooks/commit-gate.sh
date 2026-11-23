@@ -7,9 +7,14 @@
 # repo's `check:` command, on the nvm default Node when nvm is installed.
 # Any of them failing blocks the commit (exit 2, output to stderr), as does a
 # commit whose repo it cannot resolve or that is an unlisted repo inside the
-# workspace. The review is a `Skill` call to
-# code-review in the session transcript; prefixing the commit with
-# KHE_REVIEW_SKIP="<reason>" skips only that check. In a repo marked
+# workspace. The review is a `Skill` call to code-review in a Claude Code
+# transcript, or an `invoke_subagent` of code-reviewer in an Antigravity one
+# (.agents/hooks/commit-gate-adapter.sh calls this script); prefixing the
+# commit with KHE_REVIEW_SKIP="<reason>" skips only that check. Any call that
+# skips git hooks (--no-verify or -n on commit, --no-verify on push, a
+# core.hooksPath override) is refused first, by hook-bypass.awk beside this
+# script, which lists the forms it reads.
+# In a repo marked
 # `pr: true` it first refuses a commit on the default branch or a detached
 # HEAD, since agent work reaches main there through a pull request (estate
 # ADR-023); KHE_PR_SKIP="<reason>" skips only that rule, and both skips may
@@ -53,6 +58,20 @@ scan="$(awk '
 
 action=commit
 fail() { echo "commit-gate: $1; $action blocked." >&2; exit 2; }
+
+# The hook-bypass check reads $cmd itself, with its quotes, so the trigger is
+# loose and the awk decides. When the awk cannot run (missing or failing), a
+# call that may commit, push or set git config is blocked and any other passes.
+if [[ "$cmd" == *git* ]]; then
+    bypass_awk="${BASH_SOURCE[0]%/*}/hook-bypass.awk"
+    if ! bypass="$(awk -f "$bypass_awk" <<<"$cmd" 2>/dev/null)"; then
+        [[ "$scan" =~ ${git_re}(commit|push|config)([[:space:]]|;|\$) ]] &&
+            fail "$bypass_awk is missing or failing, so a hook bypass cannot be checked"
+    elif [[ -n "$bypass" ]]; then
+        echo "commit-gate: $bypass; blocked. Fix what the hook reports instead." >&2
+        exit 2
+    fi
+fi
 
 # Parallel sessions share each repo's working tree, so staging everything
 # sweeps another session's files into this commit. Stage by path.
@@ -342,10 +361,13 @@ pr_skipped=()
 transcript="$(jq -r '.transcript_path // empty' <<<"$input")"
 review=
 
-# Prints yes or no for a code-review Skill call in the main transcript and its
-# subagents' files, or nothing when no line parses. Lines are parsed one by one
-# because the last one may still be half written, and streamed with an early
-# stop because a transcript can run to tens of megabytes.
+# Prints yes or no for a review in the main transcript and its subagents'
+# files, or nothing when no line parses: a code-review Skill call in Claude
+# Code, an invoke_subagent of code-reviewer in Antigravity, whose TypeName is
+# JSON-encoded with its quotes. Only structured tool calls count, never text.
+# Lines are parsed one by one because the last one may still be half written,
+# and streamed with an early stop because a transcript can run to tens of
+# megabytes.
 review_state() {
     local f files
     [[ -n "$transcript" && -f "$transcript" ]] || return 0
@@ -354,10 +376,13 @@ review_state() {
         [[ -f "$f" ]] && files+=("$f")
     done
     jq -R -n -r '
-        def review: .type == "assistant" and
+        def review: (.type == "assistant" and
             any(.message | objects | .content | arrays | .[] | objects;
                 .type == "tool_use" and .name == "Skill" and
-                (.input | objects | .skill | strings | test("(^|:)code-review$")));
+                (.input | objects | .skill | strings | test("(^|:)code-review$"))))
+            or any(.tool_calls | arrays | .[] | objects;
+                .name == "invoke_subagent" and
+                (.args | objects | .TypeName | strings | test("^\"?code-reviewer\"?$")));
         label $out | foreach ((inputs | fromjson? | objects), "EOF") as $o ("none";
             if $o == "EOF" then . else "no" end;
             if $o == "EOF" then select(. != "none")
@@ -434,9 +459,9 @@ gate() {
         [[ -n "$review" ]] || review=unreadable
         skip_hint="to skip deliberately, prefix the commit with KHE_REVIEW_SKIP=\"<reason>\" and tell the operator why"
         [[ "$review" == unreadable ]] &&
-            fail "$label commit includes code ($code) and the session transcript '${transcript:-none given}' could not be read to find a /code-review, so a review cannot be seen either; $skip_hint, naming the unreadable transcript"
+            fail "$label commit includes code ($code) and the session transcript '${transcript:-none given}' could not be read to find a review, so a review cannot be seen either; $skip_hint, naming the unreadable transcript"
         [[ "$review" == yes ]] ||
-            fail "$label commit includes code ($code) and no /code-review ran in this session. Have Claude run /code-review, fix confirmed findings, then commit; files from another session in this tree need a worktree; $skip_hint"
+            fail "$label commit includes code ($code) and no review ran in this session. Run /code-review in Claude Code, or the code-reviewer subagent in Antigravity, fix confirmed findings, then commit; files from another session in this tree need a worktree; $skip_hint"
     fi
 
     # Only added lines are scanned, so removing personal data never blocks.
