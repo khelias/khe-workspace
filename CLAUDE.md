@@ -113,7 +113,14 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   a desktop worktree of the workspace root, which has no `repos/`; install
   dependencies there before committing. The gate refuses `git add -A`,
   `git add .`, `git add -u` and `git commit -a`, and a commit whose repo it
-  cannot resolve (a shell variable in `-C` or `cd`).
+  cannot resolve (a shell variable in `-C` or `cd`). It follows a `cd`,
+  `pushd` or `popd` only as far as the shell would: one in a subshell, a
+  pipeline or a `&` list ends there, and one that may not run (after `&&`
+  or `||`, inside `if`, `case` or a loop, at the end of a pipeline), like a
+  function definition or a `cd` it cannot read (behind `command`, `eval` or
+  an option, or as an argument), leaves a later git call without
+  `-C <absolute path>` refused. Put the `cd` first in the call or use
+  `git -C`.
   A plan file in `repos/khe-meta/plans/` is committed by its own path, in its
   own commit.
 - **Skills in `repos/<name>/.claude/skills/` do not load from here**

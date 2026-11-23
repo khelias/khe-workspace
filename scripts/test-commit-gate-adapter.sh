@@ -191,9 +191,10 @@ check_raw "code-reviewer only in text or other tools does not count" deny \
     "$(transcript_payload 'git commit -m test' "$unreviewed")" "code-reviewer subagent in Antigravity"
 
 # 7. Claude Code payloads straight to commit-gate.sh
+# gate_cmd <name> <exit> <command> [<gate script>] [<substring>] [<cwd>]
 gate_cmd() {
     local err
-    err="$(jq -n --arg c "$3" --arg cwd "$ws/repos/priv-repo" '{tool_input:{command:$c},cwd:$cwd,transcript_path:""}' |
+    err="$(jq -n --arg c "$3" --arg cwd "${6:-$ws/repos/priv-repo}" '{tool_input:{command:$c},cwd:$cwd,transcript_path:""}' |
         CLAUDE_PROJECT_DIR="$ws" /bin/bash "${4:-$ws/.claude/hooks/commit-gate.sh}" 2>&1 >/dev/null)"
     report "$1" "exit $?" "exit $2" "$err" "${5:-}"
 }
@@ -241,6 +242,49 @@ gate_cmd "quoted \"KHE_REVIEW_SKIP\" value still skips" 0 'KHE_REVIEW_SKIP="test
 gate_cmd "empty quoted KHE_REVIEW_SKIP does not skip" 2 'KHE_REVIEW_SKIP="" git commit -m x' "" "includes code"
 gate_cmd "message holding a quoted git commit passes" 0 "KHE_REVIEW_SKIP=test git commit -m 'run \"git commit\" first'"
 gate_cmd "quoted operator is not a command" 0 'echo "a&git" push origin main'
+
+# 9. A cd counts only as far as it reaches: a subshell, pipeline element or
+# background list ends it, one that may not run leaves the directory unknown.
+priv="repos/priv-repo commit includes code"
+unknown="cannot tell which directory"
+# A repo outside the workspace, which the gate lets through unchecked.
+out="$tmp/outside"
+init_repo "$out"
+gate_cmd "cd in a subshell does not move a later commit" 2 "(cd $out); git commit -m x" "" "$priv"
+gate_cmd "commit in a subshell after its cd is gated there" 2 '(cd repos/priv-repo && git commit -m x)' "" "$priv" "$ws"
+gate_cmd "cd chain before a commit is followed" 2 'cd repos/priv-repo && true && git commit -m x' "" "$priv" "$ws"
+gate_cmd "cd in a pipeline element does not move a later commit" 2 "cd $out | cat; git commit -m x" "" "$priv"
+gate_cmd "cd in a background list does not move a later commit" 2 "cd $out && true & git commit -m x" "" "$priv"
+gate_cmd "cd as an argument leaves a commit unknown" 2 "echo cd $out; git commit -m x" "" "$unknown"
+gate_cmd "quoted reserved word does not end the if" 2 "if false; then \\fi; cd $out; fi; git commit -m x" "" "$unknown"
+gate_cmd "quoted assignment is a command, not a prefix" 2 "'X=1' cd $out; git commit -m x" "" "$unknown"
+gate_cmd "command cd is /usr/bin/cd in zsh" 2 "command cd $out; git commit -m x" "" "$unknown"
+gate_cmd "cd behind an unread prefix leaves a push unknown" 2 "command -- cd $out; git push origin feat" "" "$unknown"
+gate_cmd "builtin cd is followed" 2 "builtin cd $out; cd -; git commit -m x" "" "$priv"
+gate_cmd "popd returns to the directory pushd left" 2 "pushd $out; popd; git commit -m x" "" "$priv"
+gate_cmd "cd - returns to the directory before" 2 "cd $out; cd -; git commit -m x" "" "$priv"
+gate_cmd "cd after && leaves a later commit unknown" 2 "true && cd $out; git commit -m x" "" "$unknown"
+gate_cmd "cd after || leaves a later && unknown" 2 "true || cd $out && git commit -m x" "" "$unknown"
+gate_cmd "cd at the end of a pipeline leaves a commit unknown" 2 "true | cd $out; git commit -m x" "" "$unknown"
+gate_cmd "cd in an if leaves a later commit unknown" 2 "if true; then cd $out; fi; git commit -m x" "" "$unknown"
+gate_cmd "cd in the then branch leaves the else unknown" 2 "if false; then cd $out; else git commit -m x; fi" "" "$unknown"
+gate_cmd "cd to a variable leaves a commit unknown" 2 "cd $out && cd \"\$OLDPWD\" && git commit -m x" "" "$unknown"
+gate_cmd "function definition leaves a later commit unknown" 2 "f() { cd $out; }; f; git commit -m x" "" "$unknown"
+gate_cmd "git -C after a function definition is still read" 2 "f() { cd $out; }; f; git -C $ws/repos/priv-repo commit -m x" "" "$priv"
+gate_cmd "cd in a case arm leaves a later commit unknown" 2 "case a in a|b) cd $out;; esac; git commit -m x" "" "$unknown"
+gate_cmd "case pattern ) does not end a subshell" 2 "(case a in a) cd $out;; esac); git commit -m x" "" "$priv"
+gate_cmd "cd in a loop leaves its commit unknown" 2 "for d in a b; do git commit -m x; cd $out; done" "" "$unknown"
+gate_cmd "cd to an empty word leaves a commit unknown" 2 "cd ''; git commit -m x" "" "$unknown"
+gate_cmd "pushd - returns to the directory before" 2 "cd $out; pushd -; git commit -m x" "" "$priv"
+gate_cmd "redirect before a release tag does not hide it" 2 'git -C repos/rel-repo push 2>&1 origin v1.0.0' "" "publishes a release" "$ws"
+gate_cmd "zsh function body without braces does not run" 2 "f() cd $out; git commit -m x" "" "$unknown"
+gate_cmd "parenthesised case pattern does not end a subshell" 2 "(case x in @(y|z)) ;; esac; cd $out); git commit -m x" "" "$priv"
+gate_cmd "here-string word is not a refspec" 2 'git -C repos/pr-repo push origin <<<x' "" "repos/pr-repo" "$ws"
+gate_cmd "arithmetic << is not a heredoc" 2 $'(( x = 1 << 2 ))\nKHE_REVIEW_SKIP=test git commit --no-verify -m x' "" "skips git hooks"
+gate_cmd "indented delimiter does not end a heredoc" 2 $'cat <<EOF\n  EOF\ncd '"$out"$'\nEOF\ngit commit -m x' "" "$priv"
+gate_cmd "second heredoc on a line is read too" 2 $'cat <<A <<B\nA\ncd '"$out"$'\nB\ngit commit -m x' "" "$priv"
+gate_cmd "<<- strips tabs from its delimiter" 2 $'cat <<-EOF\n\tEOF\ngit commit -m x' "" "$priv"
+gate_cmd "case without a commit passes" 0 'case a in a) echo x;; esac'
 
 mkdir -p "$tmp/noawk"
 cp "$ws/.claude/hooks/commit-gate.sh" "$tmp/noawk/commit-gate.sh"

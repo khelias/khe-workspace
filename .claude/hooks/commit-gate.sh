@@ -34,7 +34,8 @@ input="$(cat)"
 cmd="$(jq -r '.tool_input.command // empty' <<<"$input")"
 cwd="$(jq -r '.cwd // empty' <<<"$input")"
 root="${CLAUDE_PROJECT_DIR:-$cwd}"
-git_core='git(([[:space:]]+(-[Cc][[:space:]]+[^[:space:]]+|-[A-Za-z]|--[A-Za-z][-A-Za-z]*(=[^[:space:]]+)?))*)[[:space:]]+'
+# A value stops at ; so a match stays inside one command of $scan.
+git_core='git(([[:space:]]+(-[Cc][[:space:]]+[^[:space:];]+|-[A-Za-z]|--[A-Za-z][-A-Za-z]*(=[^[:space:];]+)?))*)[[:space:]]+'
 git_re="(^|[;&|(\`[:space:]/])${git_core}"
 
 action=commit
@@ -183,40 +184,104 @@ repo_of() {
     default="${default#origin/}"
 }
 
+# Prints the absolute directory $1 names from $2, or ? when only the shell
+# knows it: a variable, substitution or pattern, or a relative path from ?.
 resolve() {
     local d
     d="$(unquote "$1")"
     [[ "$d" == "~" || "$d" == "~/"* ]] && d="$HOME${d#"~"}"
+    if [[ "$d" == *[\$\`\*\?\[\{]* || ( "$d" != /* && "$2" == '?' ) ]]; then
+        printf '?'
+        return
+    fi
     [[ "$d" = /* ]] || d="$2/$d"
     printf '%s' "$d"
 }
 # main is the fallback for a clone whose origin/HEAD is not set.
 is_default() { [[ "$1" == main || ( -n "$default" && "$1" == "$default" ) ]]; }
 
-# Each match's directory: its `git -C <dir>`, else the last `cd <dir>` before
-# it, else cwd. A command may run git in several repos; each one is checked.
-# args gets each match's arguments, up to the next ; & or |.
-cd_re='(^|[;&|([:space:]])(cd|pushd)[[:space:]]+([^[:space:];&|)]+)'
+# Applies one cd, pushd or popd from $scan to dir, old (OLDPWD) and stk, the
+# directory stack this call built, top first, each entry ended by a newline.
+# A form it does not follow leaves dir unknown (?).
+move() {
+    local c="$1" new
+    shift
+    while [[ $# -gt 0 && "$1" == -[A-Za-z@-]* ]]; do
+        [[ "$1" == -- ]] && { shift; break; }
+        [[ "$1" =~ ^-[LPe@q]+$ ]] || { dir='?'; return; }
+        shift
+    done
+    if [[ $# -gt 1 || "${1-}" == [+-][0-9]* ]]; then dir='?'; return; fi
+    case "$c:$#" in
+        cd:0) new="$HOME" ;;
+        cd:1) if [[ "$1" == - ]]; then new="$old"; else new="$(resolve "$1" "$dir")"; fi ;;
+        pushd:1)
+            if [[ "$1" == - ]]; then new="$old"; else new="$(resolve "$1" "$dir")"; fi
+            stk="$dir"$'\n'"$stk"
+            ;;
+        pushd:0 | popd:0)
+            if [[ -z "$stk" ]]; then
+                new='?'
+            else
+                new="${stk%%$'\n'*}" stk="${stk#*$'\n'}"
+                [[ "$c" == pushd ]] && stk="$dir"$'\n'"$stk"
+            fi
+            ;;
+        *) new='?' ;;
+    esac
+    old="$dir" dir="$new"
+}
+
+# Each match's directory: its `git -C <dir>` from where the cds, pushds and
+# popds before it on $scan leave it, starting at cwd, within the ( and (?
+# scopes and the ? hook-bypass.awk marks. One in an unknown directory is refused. A
+# command may run git in several repos; each one is checked. args gets each
+# match's arguments.
 walk() {
-    local re="$1" rest="$scan" dir="$cwd" m flags pre d
+    local re="$1" rest="$scan" seg m flags d n=0 dir="$cwd" old='?' stk= w
+    local sk=() sd=() so=() ss=()
     dirs=() args=() gflags=()
-    while [[ "$rest" =~ $re ]]; do
-        m="${BASH_REMATCH[0]}" flags="${BASH_REMATCH[2]}"
-        gflags+=("$flags")
-        pre="${rest%%"$m"*}"
-        while [[ "$pre" =~ $cd_re ]]; do
-            dir="$(resolve "${BASH_REMATCH[3]}" "$dir")"
-            pre="${pre#*"${BASH_REMATCH[0]}"}"
-        done
-        d="$dir"
-        # git applies each -C relative to the one before it.
-        while [[ "$flags" =~ -C[[:space:]]+([^[:space:]]+) ]]; do
-            d="$(resolve "${BASH_REMATCH[1]}" "$d")"
-            flags="${flags#*"${BASH_REMATCH[0]}"}"
-        done
-        dirs+=("$d")
-        rest="${rest#*"$m"}"
-        case "$m" in *';') args+=("") ;; *) args+=("${rest%%[;&|]*}") ;; esac
+    while [[ -n "$rest" ]]; do
+        seg="${rest%%;*}"
+        rest="${rest#"$seg"}"
+        rest="${rest#;}"
+        case "$seg" in
+            "(" | "(?")
+                sk[n]="$seg" sd[n]="$dir" so[n]="$old" ss[n]="$stk"
+                n=$((n + 1))
+                ;;
+            ")")
+                [[ $n -gt 0 ]] || continue
+                n=$((n - 1))
+                if [[ "${sk[n]}" == "(" ]]; then
+                    dir="${sd[n]}" old="${so[n]}" stk="${ss[n]}"
+                elif [[ "$dir|$old|$stk" != "${sd[n]}|${so[n]}|${ss[n]}" ]]; then
+                    dir='?' old='?' stk=
+                fi
+                ;;
+            "?") dir='?' old='?' stk= ;;
+            cd | "cd "* | pushd | "pushd "* | popd | "popd "*)
+                read -r -a w <<<"$seg"
+                move "${w[@]}"
+                ;;
+            *)
+                while [[ "$seg" =~ $re ]]; do
+                    m="${BASH_REMATCH[0]}" flags="${BASH_REMATCH[2]}"
+                    gflags+=("$flags")
+                    d="$dir"
+                    # git applies each -C relative to the one before it.
+                    while [[ "$flags" =~ -C[[:space:]]+([^[:space:]]+) ]]; do
+                        d="$(resolve "${BASH_REMATCH[1]}" "$d")"
+                        flags="${flags#*"${BASH_REMATCH[0]}"}"
+                    done
+                    [[ "$d" == '?' ]] &&
+                        fail "cannot tell which directory this git $action runs in: a cd, pushd, popd or function definition before it may not run, runs elsewhere or names a variable or pattern. Put the cd first in the call, or write 'git -C <absolute path> $action'"
+                    dirs+=("$d")
+                    seg="${seg#*"$m"}"
+                    args+=("$seg")
+                done
+                ;;
+        esac
     done
 }
 
@@ -265,7 +330,7 @@ push_check() {
             +*) refuse "'$t' is a force push of that ref" ;;
             # A redirection is not an argument; one with its target apart
             # takes the next word too.
-            [0-9]*[\<\>]* | [\<\>]*) [[ "$t" == *[\<\>] ]] && skip=1 ;;
+            [0-9]*[\<\>]* | [\<\>\&]*) [[ "$t" == *[\<\>\|\&] ]] && skip=1 ;;
             *)
                 t="${t%%[<>]*}"
                 if [[ -z "$remote" ]]; then remote="$t"; else refs+=("$t"); fi
