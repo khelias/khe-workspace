@@ -60,7 +60,7 @@ repos:
   - name: khe-house3d
     url: https://github.com/khelias/khe-house3d.git
     check: bash scripts/check.sh
-    description: The 3D house engine, its model format, validator and viewer build, vendored into khe-home-assistant.
+    description: The 3D house engine, its model format, validator and viewer build, vendored into khe-home-assistant and khe-makett.
   - name: khe-makett
     url: https://github.com/khelias/khe-makett.git
     check: bash scripts/check.sh
