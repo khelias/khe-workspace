@@ -65,6 +65,10 @@ repos:
     url: https://github.com/khelias/khe-makett.git
     check: bash scripts/check.sh
     description: A house makett side project - its sales mockup, gift page, makett scripts and reports, with a vendored copy of khe-house3d.
+  - name: khe-kavand
+    url: https://github.com/khelias/khe-kavand.git
+    check: bash scripts/check.sh
+    description: A side project - buildings described in code as IFC models, with drawings and a sheet cut from them by Bonsai.
   - name: khe-stories
     url: https://github.com/khelias/khe-stories.git
     check: test ! -f package.json || { npm run lint && npm run typecheck && npm test && { test ! -d reader || python3 -m unittest discover -s reader -q; } && npm run build && npm run -s test:e2e; }
