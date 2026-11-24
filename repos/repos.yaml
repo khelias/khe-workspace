@@ -61,6 +61,10 @@ repos:
     url: https://github.com/khelias/khe-house3d.git
     check: bash scripts/check.sh
     description: The 3D house engine, its model format, validator and viewer build, vendored into khe-home-assistant.
+  - name: khe-makett
+    url: https://github.com/khelias/khe-makett.git
+    check: bash scripts/check.sh
+    description: A house makett side project - its sales mockup, gift page, makett scripts and reports, with a vendored copy of khe-house3d.
   - name: khe-stories
     url: https://github.com/khelias/khe-stories.git
     check: test ! -f package.json || { npm run lint && npm run typecheck && npm test && { test ! -d reader || python3 -m unittest discover -s reader -q; } && npm run build && npm run -s test:e2e; }
