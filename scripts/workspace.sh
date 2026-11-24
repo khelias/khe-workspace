@@ -73,9 +73,9 @@ cmd_status() {
     done < <(entries)
 }
 
-# The session-start hook runs sync outside agent-vm's sandbox, and hooks and
-# fsmonitor are commands a repo can carry, so no sync git call may start them.
-sgit=(git -c core.hooksPath=/dev/null -c core.fsmonitor=false)
+# Sync runs outside agent-vm's sandbox, and hooks, fsmonitor and the pager are
+# commands a repo can carry, so no sync git call may start them.
+sgit=(git --no-pager -c core.hooksPath=/dev/null -c core.fsmonitor=false)
 
 sync_cleanup() {
     kill $(jobs -p) 2>/dev/null || true
