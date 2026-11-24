@@ -57,6 +57,10 @@ repos:
     url: https://github.com/khelias/khe-workshop.git
     check: python3 scripts/check.py && { test ! -d web || node --test web/test/*.test.mjs; } && { test ! -f package.json || npm run -s lint; }
     description: The household's 3D-printable parts as OpenSCAD source, and the Töökoda room that shows them.
+  - name: khe-house3d
+    url: https://github.com/khelias/khe-house3d.git
+    check: bash scripts/check.sh
+    description: The 3D house engine, its model format, validator and viewer build, vendored into khe-home-assistant.
   - name: khe-stories
     url: https://github.com/khelias/khe-stories.git
     check: test ! -f package.json || { npm run lint && npm run typecheck && npm test && { test ! -d reader || python3 -m unittest discover -s reader -q; } && npm run build && npm run -s test:e2e; }
