@@ -7,8 +7,9 @@
 
 Built-ins, plus the custom skills in `.claude/skills/`: the UI ones, scoped
 to the web apps' source, `plan-file` for planning and `/goal` runs, `retro`,
-and `next`, which reads what `retro` records when the operator asks what to
-do next. Run these without being asked, at
+`next`, which reads what `retro` records when the operator asks what to
+do next, and `agent-metrics`, the weekly refresh of the numbers on
+khe.ee/agents. Run these without being asked, at
 default effort; no `/effort ultracode` or workflows unless the operator asks.
 
 - **Plan** a non-trivial change in plan mode yourself (`EnterPlanMode`)
@@ -34,10 +35,12 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
 - **See it working** for UI changes: `/run` in the browser pane.
 - **Close out** a task after its last commit with the `retro` skill:
   the plan file's Status and Outcome, the roadmap entry it moves, a
-  Judgement line when a correction repeats, the refresh of the agent-loop
-  numbers on khe.ee/agents (estate ADR-044), and the removal of the task's
+  Judgement line when a correction repeats, and the removal of the task's
   own worktrees. A small fix with no plan and no roadmap entry does only
   the removal.
+- **Refresh the agent-loop numbers** on khe.ee/agents once a week with the
+  `agent-metrics` skill (estate ADR-044), when the operator asks or `next`
+  finds them more than a week old; a retro does not.
 - **Ask with the question card.** When a turn would end on a choice that
   is the operator's (two to four options, which variant, may I push), ask
   it with `AskUserQuestion`, the recommended option first, not as a prose

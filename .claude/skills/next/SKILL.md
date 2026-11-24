@@ -73,6 +73,11 @@ unfinished. Then sort the open steps:
   operator's look or the push outcome): one line asking the operator for
   it, ranked below unfinished work. `retro` then updates the line.
 
+The agent-loop numbers on `khe.ee/agents/`: when the last refresh, `git -C
+repos/khe-architecture log -1 --format=%cs --grep='^agent-loop numbers$'
+origin/main`, is more than seven days old, one item of about ten minutes:
+the `agent-metrics` skill.
+
 ## 3. Ready roadmap items
 
 Sources, in this order: the Backlog at the top of
