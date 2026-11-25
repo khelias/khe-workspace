@@ -8,8 +8,8 @@
 Built-ins, plus the custom skills in `.claude/skills/`: the UI ones, scoped
 to the web apps' source, `plan-file` for planning and `/goal` runs, `retro`,
 `next`, which reads what `retro` records when the operator asks what to
-do next, and `agent-metrics`, the weekly refresh of the numbers on
-khe.ee/agents. Run these without being asked, at
+do next, `agent-metrics`, the weekly refresh of the numbers on
+khe.ee/agents, and `print-toy`, the loop from a wish to a printed toy. Run these without being asked, at
 default effort; no `/effort ultracode` or workflows unless the operator asks.
 
 - **Plan** a non-trivial change in plan mode yourself (`EnterPlanMode`)
