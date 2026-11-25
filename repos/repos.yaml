@@ -64,7 +64,7 @@ repos:
   - name: khe-makett
     url: https://github.com/khelias/khe-makett.git
     check: bash scripts/check.sh
-    description: A house makett side project - its sales mockup, gift page, makett scripts and reports, with a vendored copy of khe-house3d.
+    description: A house makett side project - its sales site (catalog, pages and a Cloudflare Worker), the old mockup, gift page, makett scripts and reports, with a vendored copy of khe-house3d.
   - name: khe-kavand
     url: https://github.com/khelias/khe-kavand.git
     check: bash scripts/check.sh
