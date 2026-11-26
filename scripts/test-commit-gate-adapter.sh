@@ -292,4 +292,18 @@ gate_cmd "missing hook-bypass.awk: non-git call passes" 0 'ls -la' "$tmp/noawk/c
 gate_cmd "missing hook-bypass.awk: git status passes" 0 'git status' "$tmp/noawk/commit-gate.sh"
 gate_cmd "missing hook-bypass.awk: commit blocked" 2 'KHE_REVIEW_SKIP=test git commit -m x' "$tmp/noawk/commit-gate.sh" "missing or failing"
 
+# gate_raw <name> <exit> <payload> [<PATH>] [<substring>]
+gate_raw() {
+    local err
+    err="$(printf '%s' "$3" | PATH="${4:-$PATH}" CLAUDE_PROJECT_DIR="$ws" /bin/bash "$ws/.claude/hooks/commit-gate.sh" 2>&1 >/dev/null)"
+    report "$1" "exit $?" "exit $2" "$err" "${5:-}"
+}
+gate_raw "payload without a command blocks" 2 '{"cwd":"/"}' "" "no readable command"
+gate_raw "empty command blocks" 2 '{"tool_input":{"command":""},"cwd":"/"}' "" "no readable command"
+gate_raw "unparseable payload blocks" 2 'not json' "" "no readable command"
+gate_raw "numeric command blocks" 2 '{"tool_input":{"command":1},"cwd":"/"}' "" "no readable command"
+gate_raw "non-object tool_input blocks" 2 '{"tool_input":"x","cwd":"/"}' "" "no readable command"
+mkdir -p "$tmp/nojq"
+gate_raw "missing jq blocks" 2 '{"tool_input":{"command":"ls"},"cwd":"/"}' "$tmp/nojq" "jq is required"
+
 [[ $fails -eq 0 ]] || { echo "$fails failed"; exit 1; }

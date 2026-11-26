@@ -26,12 +26,14 @@
 # could run a command of its choosing, since agent-vm allows pushes without a
 # prompt. Other Bash calls pass through untouched, so a passing commit costs
 # no tokens. The hook is registered with onFailure "block", so an error in
-# this script blocks every Bash call: it runs under macOS /bin/bash 3.2 and
-# bash 5 on agent-vm.
+# this script, a missing jq or a payload without a command blocks every Bash
+# call: it runs under macOS /bin/bash 3.2 and bash 5 on agent-vm.
 set -uo pipefail
 
 input="$(cat)"
-cmd="$(jq -r '.tool_input.command // empty' <<<"$input")"
+command -v jq >/dev/null 2>&1 || { echo "commit-gate: jq is required; call blocked." >&2; exit 2; }
+cmd="$(jq -er '.tool_input.command | select(type == "string" and length > 0)' <<<"$input" 2>/dev/null)" ||
+    { echo "commit-gate: the hook payload has no readable command; call blocked." >&2; exit 2; }
 cwd="$(jq -r '.cwd // empty' <<<"$input")"
 root="${CLAUDE_PROJECT_DIR:-$cwd}"
 # A value stops at ; so a match stays inside one command of $scan.

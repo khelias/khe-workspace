@@ -54,7 +54,7 @@ The rules every harness's hooks enforce are in `AGENTS.md` "Workspace
 hooks"; below is what is Claude Code's own.
 
 - **The gate runs as a `PreToolUse` hook on every Bash call** with
-  `"onFailure": "block"`, so a crash, a timeout or a missing script blocks
+  `"onFailure": "block"`, so a crash, a timeout, a missing script or a missing jq blocks
   every Bash call in every root session, not just commits. It runs under
   macOS `/bin/bash` 3.2. If it breaks, revert `.claude/settings.json` or the
   script by edit, not Bash. A `/code-review` the operator types is not
