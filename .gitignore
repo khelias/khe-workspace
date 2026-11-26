@@ -10,11 +10,13 @@
 .claude/launch.json
 .codex/config.toml
 
-# Desktop worktrees of the workspace root
+# Desktop worktrees of the workspace root; .worktrees/ holds worktrees of the root and of repos/<name>
 .claude/worktrees/
+/.worktrees/
 
-# Tool output
+# Tool output (00000.log is OrcaSlicer's CLI log, written to the cwd)
 .playwright-mcp/
+00000.log
 
 # OS / editor cruft
 .DS_Store
