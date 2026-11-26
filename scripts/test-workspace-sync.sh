@@ -145,7 +145,7 @@ upstream_commit "$a"
 wrap_git ""
 out="$(PATH="$bin:$PATH" "$root/scripts/workspace.sh" sync 2>&1)"
 calls="$(wc -l <"$log" | tr -d ' ')"
-safe="$(grep -c '^0 -c core.hooksPath=/dev/null -c core.fsmonitor=false ' "$log")"
+safe="$(grep -c '^0 --no-pager -c core.hooksPath=/dev/null -c core.fsmonitor=false ' "$log")"
 expect_eq "every git call has the safe settings" "$safe" "$calls"
 
 # --- missing repo ---
