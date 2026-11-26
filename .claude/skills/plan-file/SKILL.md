@@ -70,7 +70,7 @@ it working and Close out stay there, since they apply to every change.
   the earlier thinking. `/advisor` saves to user settings and an Opus main
   model accepts an Opus advisor, so after the run `/advisor off` keeps it
   from doubling later Opus sessions. The advisor reads the same
-  transcript, so it does not replace the opus check below.
+  transcript, so it does not replace the `plan-checker` agent's check below.
   A `/goal` run marks what it is changing, because neither machine can see
   the other's running work. Before its first edit it pulls khe-meta, reads
   the `**Running:**` lines in `plans/*.md`, and stops to ask the operator

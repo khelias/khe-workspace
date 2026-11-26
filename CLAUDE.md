@@ -51,7 +51,8 @@ override the file's.
   the code or a sensible default answers, and not mid-`/goal` unless the
   run is blocked. A `Stop` prompt hook in `.claude/settings.json` sends a
   turn back when it ends on such a choice in prose; it lets a turn through
-  that a hook already sent back, so a `/goal` run's turns pass unchecked.
+  that a hook already sent back, which should let a `/goal` run's turns
+  pass.
 
 ## Harness facts
 
