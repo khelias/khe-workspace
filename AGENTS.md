@@ -293,7 +293,8 @@ it unasked; a one-off correction goes to memory.
   `## Licence`. No versions, counts, file trees, full command lists or rules:
   those live in `package.json`, `AGENTS.md`, `ARCHITECTURE.md` or the code. A
   private repo has no badges and no licence section and says in one sentence
-  why it is private. A fork keeps its upstream's shape. A UI change that
+  why it is private. A fork keeps its upstream's shape, and the profile
+  README (`khelias`) GitHub's profile shape. A UI change that
   makes the picture wrong replaces it in the same commit.
 - **Where docs live.** At the root: `README.md`, `AGENTS.md`, `LICENSE`, and
   where the repo has them `ROADMAP.md`, `ARCHITECTURE.md`, `DESIGN.md` and a
@@ -305,8 +306,8 @@ it unasked; a one-off correction goes to memory.
 - **What GitHub shows.** `repos/repos.yaml` holds each repo's `description:`
   (one sentence, no full stop), `homepage:`, `topics:` and `visibility:`,
   and a table in `scripts/docs-check.py` holds them for the three public
-  repos never cloned (khe-workspace, khelias, `.github`); wiki and projects
-  are off; a public repo has private vulnerability
+  repos not cloned into `repos/` (khe-workspace, khelias, `.github`); wiki
+  and projects are off; a public repo has private vulnerability
   reporting on. `scripts/docs-check.py` reports any difference.
 - Edit existing docs; do not add new doc files (READMEs, CHANGELOGs) unless
   asked.
