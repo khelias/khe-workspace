@@ -21,6 +21,11 @@ id = "ee-isikukood"
 description = "Estonian personal ID code: century digit, birth date, serial and check digit."
 regex = '''\b[1-6]\d{2}(?:0[1-9]|1[0-2])(?:0[1-9]|[12]\d|3[01])\d{4}\b'''
 
+[[rules.allowlists]]
+description = "GitHub Actions run ids are 11 digits and look like an ID code: the pin bots' commit messages link their run."
+regexTarget = "line"
+regexes = ['''github\.com/[\w.-]+/[\w.-]+/actions/runs/\d+''']
+
 [[rules]]
 id = "ee-phone"
 description = "Estonian phone number in international form: 7 or 8 digits, any grouping."
