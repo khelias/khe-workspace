@@ -51,6 +51,9 @@ regexes = [
   '''(?i)\.(?:lan|local|localhost|internal|home\.arpa)$''',
   '''(?i)\.(?:png|jpe?g|svg|webp|gif|avif)$''',
   '''^kaidoelias@gmail\.com$''',
+  # Resend's public test sender, and Taskukodu's sending address on its own mail subdomain: senders, not people
+  '''^onboarding@resend\.dev$''',
+  '''^tellimus@mail\.taskukodu\.ee$''',
 ]
 
 [[rules]]
