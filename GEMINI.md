@@ -30,6 +30,6 @@ alongside this file.
 - **Shared skills.** `.agents/skills.json` loads `.claude/skills/` directly without copying.
   Where they name Claude tools: the question card is `ask_question`, a subagent is
   `invoke_subagent`, and `/goal` is user-triggered in the Antigravity chat UI (using
-  `code-reviewer` rather than a Claude-only `opus` subagent clause).
+  `code-reviewer` for a `/goal` clause that names a Claude agent from `.claude/agents/`, such as `plan-checker`).
 - **UI verification.** Start local dev servers via `run_command` (`IsDaemon: true`) and
   inspect mobile and desktop widths with the `browser` subagent.

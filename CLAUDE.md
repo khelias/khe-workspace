@@ -10,24 +10,28 @@ to the web apps' source, `plan-file` for planning and `/goal` runs, `retro`,
 do next, `agent-metrics`, the weekly refresh of the numbers on
 khe.ee/agents, and `print-toy`, the loop from a wish to a printed toy. Run these without being asked, at
 default effort; no `/effort ultracode` or workflows unless the operator asks.
+The review roles are agents in `.claude/agents/`, each on opus and without
+the Edit and Write tools: `plan-reviewer`, `plan-checker`, `security-reviewer` and
+`code-reviewer`. Call them without a `model` parameter, which would
+override the file's.
 
 - **Plan** a non-trivial change in plan mode yourself (`EnterPlanMode`)
-  and load the `plan-file` skill as you enter it; a plan-review subagent is
-  pointed at the skill for the ADR criteria.
+  and load the `plan-file` skill as you enter it; the `plan-reviewer` agent
+  reviews the plan with that skill preloaded.
 - **Execute** a written plan through the `/goal` line the `plan-file` skill
   describes.
 - **Check against the plan** at the end of a `/goal` run, before the
-  review, with the opus subagent the `plan-file` skill describes.
+  review, with the `plan-checker` agent the `plan-file` skill describes.
 - **Review** every code change (not docs-only) before committing:
   `/simplify` first, which applies its own fixes for reuse and duplication
   (copied helpers drift apart across repos), then `/code-review` (medium; `high` for risky or public-facing
   changes) over the result. Add `/security-review` when the change touches
   an internet-facing surface (the adventure proxy, nginx, Cloudflare or
   tunnel config, GitHub Actions workflows) or the commit gate. Run it
-  through a subagent: the skill ends its reply with the report alone, which
-  in the main loop ends the turn and stalls a `/goal` run.
-  Skills can pin a model and whether this one does is unverified, so after
-  a `sonnet` goal ask the operator to switch the session to `opus` first.
+  through the `security-reviewer` agent: the skill ends its reply with the
+  report alone, which in the main loop ends the turn and stalls a `/goal`
+  run. On a session that is not opus, run `/code-review` through the
+  `code-reviewer` agent.
   Verify each finding against the code, fix the confirmed ones, and say
   which were dropped. The review check and the deliberate skip are in
   `AGENTS.md` "Workspace hooks".
@@ -45,7 +49,9 @@ default effort; no `/effort ultracode` or workflows unless the operator asks.
   it with `AskUserQuestion`, the recommended option first, not as a prose
   list; likewise before work whose direction is still open. Not for what
   the code or a sensible default answers, and not mid-`/goal` unless the
-  run is blocked.
+  run is blocked. A `Stop` prompt hook in `.claude/settings.json` sends a
+  turn back when it ends on such a choice in prose; it lets a turn through
+  that a hook already sent back, so a `/goal` run's turns pass unchecked.
 
 ## Harness facts
 
@@ -71,6 +77,9 @@ hooks"; below is what is Claude Code's own.
   (gitignored directories are skipped). A needed skill goes in this repo's
   `.claude/skills/`, scoped with `paths:` when it belongs to one area.
   `.agents/skills` is a link to that directory, where Codex reads skills.
+  Agent files load the same way, only from this root's `.claude/agents/`
+  (discovery stops at the repository root), so a session started inside
+  `repos/<name>` has neither.
 - **Grep reaches `repos/` only through `.rgignore`**, which negates the
   `.gitignore` entry.
 - **The browser pane reads only this root's `.claude/launch.json`**

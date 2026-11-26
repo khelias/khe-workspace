@@ -1,6 +1,6 @@
 ---
 name: plan-file
-description: How a non-trivial change is planned, handed over and checked in the KHE workspace - the plan file and its ADR criteria, the plan-review subagent, the /goal line with its clauses, the model to run it on, and the opus check of the diff against the plan. Use when entering plan mode, writing or reviewing a plan file, handing over or running a /goal line.
+description: How a non-trivial change is planned, handed over and checked in the KHE workspace - the plan file and its ADR criteria, the plan-reviewer agent, the /goal line with its clauses, the model to run it on, and the plan-checker agent's check of the diff against the plan. Use when entering plan mode, writing or reviewing a plan file, handing over or running a /goal line.
 ---
 
 # Plan file
@@ -32,7 +32,8 @@ it working and Close out stay there, since they apply to every change.
   approves the plan. A plan in the area of a Proposed ADR says whether it
   accepts, changes or leaves it, and why.
   After writing the plan file and before handing over the `/goal` line,
-  have a subagent without this conversation review it: what does the plan
+  have the `plan-reviewer` agent (`.claude/agents/`, called without a
+  `model` parameter, so it runs on opus) review it: what does the plan
   get wrong or leave out that would break the goal or correctness, and
   which decision it makes lacks its ADR step, and does the TL;DR still
   match the Steps? Gaps, not style. Verify
@@ -46,13 +47,13 @@ it working and Close out stay there, since they apply to every change.
 - **Execute** a written plan through `/goal`, which only the operator can
   type: end the planning turn with the exact line to paste, a condition
   provable from output plus a turn cap, e.g. `/goal every step in
-  repos/khe-meta/plans/x.md is checked, an opus subagent comparing the diff
-  to the plan reports no unfixed gaps, grep -c '^## Outcome'
+  repos/khe-meta/plans/x.md is checked, a plan-checker agent comparing the
+  diff to the plan reports no unfixed gaps, grep -c '^## Outcome'
   repos/khe-meta/plans/x.md prints 1, and npm test exits 0 in the output,
   or stop after 20 turns`. The Outcome clause makes the retro part of the
   run. When a step touches a surface `CLAUDE.md` Review names for
-  `/security-review`, the line also has the clause "a security-review
-  subagent's findings are each fixed or dropped with a reason", since as a
+  `/security-review`, the line also has the clause "a security-reviewer
+  agent's findings are each fixed or dropped with a reason", since as a
   separate step it gets skipped. Also offer the same line as a
   `mcp__ccd_session__start_session` card, so one click runs it in a fresh
   session. A card started on 2026-11-12 delivered the line to the new
@@ -79,7 +80,8 @@ it working and Close out stay there, since they apply to every change.
   that file at once, reads the lines again after the push, and stops to ask
   the operator on an overlap. `retro` removes the line.
 - **Check against the plan** at the end of a `/goal` run, before the
-  review: a subagent with `model: opus` compares the diff to the plan file.
+  review: the `plan-checker` agent, called without a `model` parameter,
+  compares the diff to the plan file.
   Every step implemented, the listed edge cases tested, nothing outside the
   plan's scope changed. The goal evaluator reads only the transcript, so
   "every step is checked" is the executor's own claim until this passes.

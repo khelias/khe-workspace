@@ -45,6 +45,17 @@
         ]
       }
     ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "$ARGUMENTS - If stop_hook_active is true, return {\"ok\": true}. Return {\"ok\": false, \"reason\": \"End this turn with the question card: ask the choice with AskUserQuestion, the recommended option first.\"} only if last_assistant_message ends by asking the operator to pick between two to four options, which variant to take, or whether a push or other step may go ahead, written as prose. Return {\"ok\": true} for everything else: a report, a summary, a list of findings, a handover (a /goal line, a command block for the operator to run, a Waiting note), a progress report in a running task, or a question already asked with the card.",
+            "timeout": 20
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
