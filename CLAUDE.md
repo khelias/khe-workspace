@@ -1,7 +1,6 @@
 # CLAUDE.md
 
 @AGENTS.md
-@repos/khe-architecture/ESTATE.md
 
 ## Workflow
 
