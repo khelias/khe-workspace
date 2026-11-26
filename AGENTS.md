@@ -254,6 +254,7 @@ it unasked; a one-off correction goes to memory.
   repo's and the root's `AGENTS.md`/`CLAUDE.md`, affected ADRs and overlapping
   `docs/*.md`, and fix what is now wrong in the same commit. The test: would a
   fresh agent form a misleading picture? A judgement call, not a hard rule.
+  Then run `python3 scripts/docs-check.py` from the workspace root.
   An affected ADR is amended in place, with its Status date moved to that
   day, when the change extends, narrows or makes an exception to it; a
   reversal gets a new ADR and leaves the old one as a Superseded stub, and a
@@ -281,11 +282,32 @@ it unasked; a one-off correction goes to memory.
   v3 currently" beats "DO NOT use v4", which goes silently wrong the day v4
   lands. Hard prohibitions stay for security and invariants, with an override
   path ("without an ADR").
-- A README is for people and holds what rarely changes: what the repo is and
-  why, the few commands to run it, where it lives, and links to the rest. No
-  versions, counts, file trees, full command lists or rules: those live in
-  `package.json`, `AGENTS.md`, `ARCHITECTURE.md` or the code, and a copy in
-  the README is the one that goes stale. The CI badge is the live status.
+- **README.** For people, and it holds what rarely changes. In this order:
+  `# <repo name>`; at most three badges (CI, then Deploy or CodeQL where the
+  repo has them, the npm version for a published package); one paragraph on
+  what it is and for whom, with its live address and, in bold, the product's
+  public name when it has one; for anything with a screen, one picture under
+  `docs/`, taken from the public page at desktop width in the light theme and
+  linked to that page; then only the sections the repo needs, under these
+  names: `## How it works`, `## Run it`, `## Where it runs`, `## More`,
+  `## Licence`. No versions, counts, file trees, full command lists or rules:
+  those live in `package.json`, `AGENTS.md`, `ARCHITECTURE.md` or the code. A
+  private repo has no badges and no licence section and says in one sentence
+  why it is private. A fork keeps its upstream's shape. A UI change that
+  makes the picture wrong replaces it in the same commit.
+- **Where docs live.** At the root: `README.md`, `AGENTS.md`, `LICENSE`, and
+  where the repo has them `ROADMAP.md`, `ARCHITECTURE.md`, `DESIGN.md` and a
+  `SECURITY.md` for what is particular to the repo (the default is in
+  `khelias/.github`). Everything else under `docs/`, new files in lowercase
+  kebab-case, decisions in `docs/decisions/` with the number width the repo
+  started with. Every doc is linked from the README, `AGENTS.md` or another
+  doc. No Mermaid: a table or text, and a hand-laid SVG for a picture.
+- **What GitHub shows.** `repos/repos.yaml` holds each repo's `description:`
+  (one sentence, no full stop), `homepage:`, `topics:` and `visibility:`,
+  and a table in `scripts/docs-check.py` holds them for the three public
+  repos never cloned (khe-workspace, khelias, `.github`); wiki and projects
+  are off; a public repo has private vulnerability
+  reporting on. `scripts/docs-check.py` reports any difference.
 - Edit existing docs; do not add new doc files (READMEs, CHANGELOGs) unless
   asked.
 - Adding an automated writer anywhere (a bot that merges, a scheduled job, an

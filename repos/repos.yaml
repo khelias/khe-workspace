@@ -9,85 +9,139 @@
 # checks pass (estate ADR-023): the gate refuses commits on the default branch
 # and pushes that move it.
 # release_tag: a glob; the gate refuses a push of a tag matching it (a release).
+# description: (quoted), homepage:, topics: (comma-separated) and visibility:
+# are what GitHub shows for the repo; scripts/docs-check.py --meta compares
+# them. visibility: private does not imply private: true, which only the
+# personal-data scan reads.
 repos:
   - name: khe-meta
     url: https://github.com/khelias/khe-meta.git
     private: true
-    description: Private working layer, the estate roadmap, plans and house documentation.
+    description: "The private half of the KHE estate's cross-repo layer: roadmap, plans and house documentation"
+    visibility: private
+    topics: documentation,homelab,planning,roadmap
   - name: khe-architecture
     url: https://github.com/khelias/khe-architecture.git
     check: bash scripts/check.sh
-    description: Public estate architecture, the decisions and the estate index.
+    description: "Architecture decisions and the estate index of the KHE family estate"
+    visibility: public
+    homepage: https://khe.ee/architecture/
+    topics: adr,architecture,architecture-decision-records,documentation,homelab
   - name: khe-homelab
     url: https://github.com/khelias/khe-homelab.git
     check: rc=0; for f in scripts/*.sh; do bash -n "$f" || rc=1; done; [ ! -d infrastructure/edge-fallback ] || node --test infrastructure/edge-fallback/test/ || rc=1; exit $rc
-    description: Proxmox + Docker Compose infrastructure.
+    description: "The family homelab as code: self-hosted services with Docker Compose on Proxmox, behind Cloudflare Tunnel"
+    visibility: public
+    homepage: https://khe.ee/architecture/
+    topics: cloudflare-tunnel,docker-compose,homelab,proxmox,self-hosted,tailscale
   - name: khe-home-assistant
     url: https://github.com/khelias/khe-home-assistant.git
     check: bash scripts/check.sh
-    description: Home Assistant configuration, dashboard generator and the 3D house view.
+    description: "Home Assistant configuration for one house: YAML packages, a dashboard generator and a 3D house card"
+    visibility: public
+    homepage: https://khe.ee/ha/
+    topics: home-assistant,home-automation,lovelace,smart-home,threejs
   - name: khe-sites
     url: https://github.com/khelias/khe-sites.git
     check: npm run -s check
     pr: true
-    description: Static source for khe.ee and the games.khe.ee launcher.
+    description: "Static source for khe.ee, its architecture and agents pages, and the games.khe.ee hub"
+    visibility: public
+    homepage: https://khe.ee/
+    topics: cloudflare,github-actions,nginx,personal-website,static-site
   - name: khe-ui
     url: https://github.com/khelias/khe-ui.git
     check: npm run -s check
     release_tag: v*
-    description: Shared UI packages for the apps, published to npm as @khelias/ui.
+    description: "Shared UI for the KHE apps, published to npm as @khelias/ui: the site header, footer and design check"
+    visibility: public
+    homepage: https://www.npmjs.com/package/@khelias/ui
+    topics: css-custom-properties,design-system,npm-package,react,ui-components
   - name: khe-study
     url: https://github.com/khelias/khe-study.git
     check: npm run -s lint && npm run -s typecheck && npm run -s test:run && npm run -s test:e2e
-    description: Educational web game platform.
+    description: "Educational web games for the Estonian curriculum: reading, maths, logic and memory"
+    visibility: public
+    homepage: https://games.khe.ee/study/
+    topics: educational-games,learning,playwright,react,typescript,vitest
   - name: khe-ai-adventure
     url: https://github.com/khelias/khe-ai-adventure.git
     check: npm run -s lint && npx tsc -b && npm run -s test:unit
-    description: AI-narrated pass-the-phone party game.
+    description: "AI-narrated pass-the-phone party game for three to six players, with a guarded provider proxy"
+    visibility: public
+    homepage: https://games.khe.ee/adventure/
+    topics: ai-game,claude,gemini,llm,react,typescript,vite
   - name: khe-trips
     url: https://github.com/khelias/khe-trips.git
     private: true
     check: npm run -s lint && npm run -s typecheck && npm test --silent && npm run -s test:e2e
-    description: Private family trip atlas.
+    description: "Private family trip atlas, with shared trips and a public demo at khe.ee/trips"
+    visibility: private
+    homepage: https://khe.ee/trips/
+    topics: maps,react,travel,trip-planner,typescript
   - name: khe-albums
     url: https://github.com/khelias/khe-albums.git
     check: .venv/bin/ruff check . && .venv/bin/ruff format --check . && .venv/bin/mypy && .venv/bin/python -m pytest -q
-    description: Family album selection from the home photo library, written as Apple Photos favourites.
+    description: "Picks the frames for family albums from the home photo library and marks them as Apple Photos favourites"
+    visibility: private
+    topics: apple-photos,photo-library,photography,python
   - name: khe-workshop
     url: https://github.com/khelias/khe-workshop.git
     check: python3 scripts/check.py && { test ! -d web || node --test web/test/*.test.mjs; } && { test ! -f package.json || npm run -s lint; }
-    description: The household's 3D-printable parts as OpenSCAD source, and the Töökoda room that shows them.
+    description: "The household's 3D-printable parts as OpenSCAD source with checks, and Töökoda, the room that shows each real print"
+    visibility: public
+    homepage: https://khe.ee/workshop/
+    topics: 3d-printing,cad,openscad,parametric-design
   - name: khe-house3d
     url: https://github.com/khelias/khe-house3d.git
     check: bash scripts/check.sh
-    description: The 3D house engine, its model format, validator and viewer build, vendored into khe-home-assistant and khe-makett.
+    description: "The 3D house engine: a three.js scene drawn from a parametric house model, with its format, validator and viewer"
+    visibility: public
+    homepage: https://khe.ee/ha/
+    topics: 3d,home-assistant,house-model,threejs,webgl
   - name: khe-makett
     url: https://github.com/khelias/khe-makett.git
     check: bash scripts/check.sh
-    description: A house makett side project - its sales site (catalog, pages and a Cloudflare Worker), the old mockup, gift page, makett scripts and reports, with a vendored copy of khe-house3d.
+    description: "A side project: a 3D-printed scale model of a house made from its drawings, with a sales site preview"
+    visibility: private
+    topics: 3d-printing,architecture-model,cloudflare-workers,side-project
   - name: khe-kavand
     url: https://github.com/khelias/khe-kavand.git
     check: bash scripts/check.sh
-    description: A side project - buildings described in code as IFC models, with drawings and a sheet cut from them by Bonsai.
+    description: "Buildings described in code: IFC models with plans, sections and a sheet drawn by Bonsai"
+    visibility: private
+    topics: architecture,bim,blender,bonsai,ifc
   - name: khe-stories
     url: https://github.com/khelias/khe-stories.git
     check: test ! -f package.json || { npm run lint && npm run typecheck && npm test && { test ! -d reader || python3 -m unittest discover -s reader -q; } && npm run build && npm run -s test:e2e; }
     pr: true
-    description: Unejänku, the bedtime stories app (public code, invented demo stories).
+    description: "Unejänku, the bedtime stories app that reads stories aloud, with invented demo stories"
+    visibility: public
+    homepage: https://khe.ee/stories/
+    topics: bedtime-stories,pwa,text-to-speech,typescript,vite
   - name: khe-bunny-tales
     url: https://github.com/khelias/khe-bunny-tales.git
     check: test -x .venv/bin/python || { echo "khe-bunny-tales has no .venv, run python3 -m venv .venv && .venv/bin/pip install -r requirements.txt"; exit 1; }; .venv/bin/python scripts/check.py && .venv/bin/python -m unittest discover -s scripts -q && node scripts/scenes/render.mjs --check
-    description: The family's bedtime stories and the world they share.
+    description: "The family's bedtime stories of the bunny family and the world they share"
+    visibility: private
+    homepage: https://khe.ee/stories/
+    topics: bedtime-stories,children,estonian,storytelling
   - name: khe-deals
     url: https://github.com/khelias/khe-deals.git
     check: npm run -s check
-    description: Family deal alerts, a Telegram bot that watches second-hand listings.
+    description: "Family deal alerts: a Telegram bot that watches second-hand listings and has Claude judge them"
+    visibility: public
+    topics: claude,deal-alerts,github-actions,scraper,telegram-bot
   - name: khe-deals-watches
     url: https://github.com/khelias/khe-deals-watches.git
     private: true
-    description: The family's deal watches, validated by khe-deals (khe-deals ADR-001).
+    description: "The family's saved searches for khe-deals, written by the bot after its owner confirms"
+    visibility: private
+    topics: configuration,data,deal-alerts,telegram-bot
   - name: ha-estfeed
     url: https://github.com/khelias/ha-estfeed.git
     check: .venv/bin/ruff check custom_components tests && .venv/bin/ruff format --check custom_components tests && .venv/bin/mypy && .venv/bin/python -m pytest tests -q --cov=custom_components/estfeed --cov-fail-under=85
     upstream: https://github.com/tehisain/ha-estfeed.git
-    description: Fork of the Elering Estfeed Home Assistant integration.
+    description: "Home Assistant integration for Elering Estfeed meter data, with grid tariffs, cost sensors and a bill forecast"
+    visibility: public
+    topics: elering,estfeed,hacs,hacs-integration,home-assistant

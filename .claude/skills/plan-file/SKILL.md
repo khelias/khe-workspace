@@ -21,7 +21,7 @@ it working and Close out stay there, since they apply to every change.
   why it needs none. A decision needs one when it is hard to reverse,
   picks between real alternatives, and spans two or more repos or decides
   which repo owns a concern (estate ADR in `khe-architecture/decisions/`),
-  or shapes one repo's architecture (that repo's `docs/adr/` or
+  or shapes one repo's architecture (that repo's
   `docs/decisions/`; khe-homelab's `docs/service-choices.md`). Not an
   estate ADR: an exception to an estate rule (a point of that ADR), one
   repo's design, one machine's set-up (its runbook) or an agent convention

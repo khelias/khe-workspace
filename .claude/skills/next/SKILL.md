@@ -33,7 +33,12 @@ for r in $(awk '/^[[:space:]]*- name:/{print $3}' repos/repos.yaml); do
 done
 scripts/workspace.sh status
 git fetch --quiet && git log --oneline @{u}..
+python3 scripts/docs-check.py --meta
 ```
+
+- Docs off the standard (`AGENTS.md` "Code and docs"): list what
+  `docs-check.py` prints, grouped by repo, as one item; each `META` line
+  carries its fix.
 
 - Ahead of upstream: unpushed commits (`git -C repos/<name> log --oneline
   @{u}..`). Behind: a pull. Dirty: untracked `__pycache__` and other build
