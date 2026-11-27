@@ -1,12 +1,13 @@
 ---
 name: next
-description: Answer "what should I do next" from what the estate already records - unfinished work first, then ready roadmap items, all sized against the time the operator has and checked against git. Read-only; the counterpart of retro. Use when the operator asks what to do next, what is pending, or "mis järgmiseks".
+description: Answer "what should I do next" from what the estate already records - unfinished work first, then ready roadmap items, all sized against the time the operator has and checked against git, and on the operator's word starts the startable plans. Writes no file; the counterpart of retro. Use when the operator asks what to do next, what is pending, or "mis järgmiseks", and when they say "pane tööd käima" or "start the ready work".
 ---
 
 # Next
 
 `retro` writes the estate's state; this reads it. Write nothing: no roadmap,
-plan or tracker edits. The answer is short, and in Estonian like the rest
+plan or tracker edits. Step 6 is the one action: it starts sessions, and
+only on the operator's words. The answer is short, and in Estonian like the rest
 of the conversation. Do not quote LAN addresses, MACs or device ids from
 plan or house files; say what the item is instead.
 
@@ -141,3 +142,29 @@ worth clearing.
 
 End by asking which to take. A non-trivial pick goes to plan mode as
 the `plan-file` skill describes.
+
+## 6. Start the ready work
+
+Only when the operator says "pane tööd käima" or "start the ready work", in
+a desktop-app session of the personal instance on opus: `start_session`
+needs the desktop app, and a session cannot start one on a stronger model
+than its own. Steps 1 to 5 still run first, without the budget question
+and the closing question.
+
+- Slots: three minus the lines `scripts/workspace.sh running` prints
+  (root `AGENTS.md` "Who runs what").
+- Picks: startable plans (`plan-file` skill) in step 5's rank, each with
+  no repo that a Running line or an earlier pick names, until the slots
+  are filled.
+- Each with `mcp__ccd_session__start_session`: `initiation` `user_asked`,
+  `context` `fresh`, `use_worktree` false, this session's permission mode,
+  the model from the plan's `## Run` (a "sonnet with `/advisor opus`" plan
+  on opus, since the advisor cannot be set from here). The brief is the
+  Run line, the plan's TL;DR and: "On a khe-meta `index.lock` or a rejected
+  push, wait a minute, rebase onto `origin/main` and retry."
+- Then `mcp__ccd_host__request_keep_awake`, and the report: what started,
+  in which session; what was startable but left out, and why (an overlap,
+  no slot, no `## Run`); that each goal arrived as a brief, without the
+  goal evaluator or its turn cap; that the laptop must stay open and on
+  power; and that a cut by the usage limit resumes only if the app's
+  "Auto-continue when limits reset" is on, which this cannot see.

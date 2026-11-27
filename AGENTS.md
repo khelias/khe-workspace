@@ -69,7 +69,8 @@ instance), the operator runs them from a handover:
   plan.
 - At most three plans run at once, counted from `scripts/workspace.sh
   running`, quiet lines included until the operator clears them; a `/goal`
-  run stops to ask on a fourth.
+  run stops to ask on a fourth. "Pane tööd käima" fills the free slots with
+  startable plans (`next` skill, step 6).
 - The operator approves a fork PR run on a repo with a homelab runner, and
   only after reading its `.github/workflows/` diff (estate ADR-023 point 5; the setting
   is in `ESTATE.md` "Adding a repo").

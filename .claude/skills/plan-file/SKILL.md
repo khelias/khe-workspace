@@ -13,14 +13,19 @@ it working and Close out stay there, since they apply to every change.
   The operator does not switch modes: when a task needs a plan, enter plan
   mode yourself with the `EnterPlanMode` tool rather than planning in chat.
   The header is `**Status:**`, starting with one of `planned approved
-  running waiting review done partly superseded`; `**Plan review:**`;
+  running waiting review paused done partly superseded` (`paused` names
+  what it waits for, so a pause is never free text after another word);
+  `**Plan review:**`;
   `**Autonomy:** agent to done | agent to PR | needs you`, how far the
   agent may take it alone; and `**From you:** none | before: <what> |
   after: <what>`, what only the operator can do, one or more items. The
   plan file is the one record of its work: an operator step it needs goes
   in From you, not in `ROADMAP.md` Waiting. A plan is **ready** when it has
-  a Plan review count, no open question and From you `none` or `after:`;
-  only a ready plan starts without the operator in the session. Under the
+  a Plan review count, no open question, From you `none` or `after:` and a
+  `## Run` section; only a ready plan starts without the operator in the
+  session. **Startable**, which `next` starts on the operator's word: ready,
+  Status `planned`, `approved`, or `partly` with agent steps open, and
+  Autonomy not `needs you`. Under the
   header the plan opens with a
   `**TL;DR:**` of two to four plain sentences in the shape of a PR's
   (`AGENTS.md` "Who runs what"): what changes and what the operator will
@@ -60,7 +65,9 @@ it working and Close out stay there, since they apply to every change.
   diff to the plan reports no unfixed gaps, grep -c '^## Outcome'
   repos/khe-meta/plans/x.md prints 1, and npm test exits 0 in the output,
   or stop after 20 turns`. The Outcome clause makes the retro part of the
-  run. When a step touches a surface `CLAUDE.md` Review names for
+  run. The same line and the model go into the plan's last section, `## Run`
+  (`Model: <model>`, then the line in backticks), committed with the plan,
+  so a session that did not write it can start it. When a step touches a surface `CLAUDE.md` Review names for
   `/security-review`, the line also has the clause "a security-reviewer
   agent's findings are each fixed or dropped with a reason", since as a
   separate step it gets skipped. Also offer the same line as a
