@@ -249,6 +249,9 @@ it unasked; a one-off correction goes to memory.
 - **Write short from the first draft.** Each user-facing string makes one
   point; an explanation beside the thing it explains, in a legend, sublabel
   or link line, is cut before the operator sees it.
+- **Ask in the operator's words, and only what the agent cannot find out.**
+  A question card names the thing and the choice, not the mechanism; what
+  transcripts, sessions or git can answer, the agent reads first.
 
 ## Code and docs
 
