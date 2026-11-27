@@ -65,9 +65,11 @@ it working and Close out stay there, since they apply to every change.
   judgement calls, and `sonnet` with `/advisor opus` when most steps are
   mechanical but a few leave a call: Sonnet runs the work and consults
   Opus at decision points
-  ([advisor](https://code.claude.com/docs/en/advisor)). The operator sets
-  both in the new session, since switching models inside a session drops
-  the earlier thinking. `/advisor` saves to user settings and an Opus main
+  ([advisor](https://code.claude.com/docs/en/advisor)). The card passes
+  that model as `start_session`'s `model`, so the session starts on it
+  rather than on the app's last pick; the operator sets `/advisor opus`
+  there. Pick the model before the session starts, since switching models
+  inside a session drops the earlier thinking. `/advisor` saves to user settings and an Opus main
   model accepts an Opus advisor, so after the run `/advisor off` keeps it
   from doubling later Opus sessions. The advisor reads the same
   transcript, so it does not replace the `plan-checker` agent's check below.
