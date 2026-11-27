@@ -59,11 +59,17 @@ instance), the operator runs them from a handover:
   protection there is strict.
 - On the homelab VM: what the agent runs there and what stays the
   operator's is in khe-homelab `AGENTS.md` "Access and operations".
-- A session that stops with something only the operator can do first adds
-  one line under **Waiting** in the Backlog of `repos/khe-meta/ROADMAP.md`,
-  so it does not stay in a chat. Switching a service or a scheduled job off
-  or on goes in the plan's Status in the same step, or under Waiting when
-  there is no plan.
+- A session that stops with something only the operator can do first
+  writes it down, so it does not stay in a chat: in its plan's `**From
+  you:**` line (`plan-file` skill), or, with no open plan, one line under
+  **Waiting** in the Backlog of `repos/khe-meta/ROADMAP.md`. Waiting keeps
+  only items with no plan, items of an audit or of a plan closed before
+  From you existed (2026-11-27), and recurring ones. Switching a service or a scheduled job off or on goes in
+  the plan's Status in the same step, or under Waiting when there is no
+  plan.
+- At most three plans run at once, counted from `scripts/workspace.sh
+  running`, quiet lines included until the operator clears them; a `/goal`
+  run stops to ask on a fourth.
 - The operator approves a fork PR run on a repo with a homelab runner, and
   only after reading its `.github/workflows/` diff (estate ADR-023 point 5; the setting
   is in `ESTATE.md` "Adding a repo").
@@ -177,7 +183,9 @@ and quirks are in `CLAUDE.md` "Harness facts" and `GEMINI.md`.
   `branch`, `dirty`, `ahead` and `failed` name a repo it did not update,
   `npm ci` one it updated whose lock file changed. A `**Running:**` line it
   lists means a plan is changing the repos it names: ask the operator
-  before changing one of them.
+  before changing one of them. One ending in `quiet <h>h` has seen no
+  commit in six hours, in its plan file or its repos, and may be a run
+  that ended.
 
 ## Where the estate is described
 

@@ -68,6 +68,19 @@
           }
         ]
       }
+    ],
+    "StopFailure": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop-failure.sh",
+            "async": true,
+            "timeout": 10,
+            "onFailure": "continue"
+          }
+        ]
+      }
     ]
   },
   "plansDirectory": "repos/khe-meta/plans"

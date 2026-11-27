@@ -12,7 +12,16 @@ it working and Close out stay there, since they apply to every change.
   command. Plan files land in `repos/khe-meta/plans/` (`plansDirectory`).
   The operator does not switch modes: when a task needs a plan, enter plan
   mode yourself with the `EnterPlanMode` tool rather than planning in chat.
-  Under its Status and Plan review lines the plan opens with a
+  The header is `**Status:**`, starting with one of `planned approved
+  running waiting review done partly superseded`; `**Plan review:**`;
+  `**Autonomy:** agent to done | agent to PR | needs you`, how far the
+  agent may take it alone; and `**From you:** none | before: <what> |
+  after: <what>`, what only the operator can do, one or more items. The
+  plan file is the one record of its work: an operator step it needs goes
+  in From you, not in `ROADMAP.md` Waiting. A plan is **ready** when it has
+  a Plan review count, no open question and From you `none` or `after:`;
+  only a ready plan starts without the operator in the session. Under the
+  header the plan opens with a
   `**TL;DR:**` of two to four plain sentences in the shape of a PR's
   (`AGENTS.md` "Who runs what"): what changes and what the operator will
   notice, what could go wrong, how to undo it. The same TL;DR, in
@@ -76,11 +85,17 @@ it working and Close out stay there, since they apply to every change.
   A `/goal` run marks what it is changing, because neither machine can see
   the other's running work. Before its first edit it pulls khe-meta, reads
   the `**Running:**` lines in `plans/*.md`, and stops to ask the operator
-  when another plan names a repo this run will change. It then writes
+  when another plan names a repo this run will change, or when the running
+  lines already reach the limit in `AGENTS.md` "Who runs what". It then writes
   `**Running:** <laptop|agent-vm> <YYYY-MM-DD> <repo> [<repo> ...]` under
   the plan's Status, leaving khe-meta out of the list, commits and pushes
   that file at once, reads the lines again after the push, and stops to ask
   the operator on an overlap. `retro` removes the line.
+  A run that stops for the operator writes it down before it ends the
+  turn: Status `waiting` with From you `before: <what>`, or `review` when a
+  build waits for the operator's look; it removes its Running line, so a
+  waiting plan holds no slot, and commits and pushes khe-meta. The run
+  that resumes writes the line again.
 - **Check against the plan** at the end of a `/goal` run, before the
   review: the `plan-checker` agent, called without a `model` parameter,
   compares the diff to the plan file.

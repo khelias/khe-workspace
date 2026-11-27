@@ -7,7 +7,10 @@
 #   scripts/workspace.sh sync     fast-forward each repo that is on a clean main,
 #                                 one line for each that needs a look; the root is
 #                                 only reported
-#   scripts/workspace.sh running  the plans in khe-meta marked as running now
+#   scripts/workspace.sh running  the plans in khe-meta marked as running now,
+#                                 " quiet <h>h" after six hours without a commit
+#
+# Tests: scripts/test-workspace-sync.sh, scripts/test-workspace-running.sh.
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -177,12 +180,41 @@ cmd_sync() {
 # Reads origin/main, so a dirty khe-meta checkout does not hide a running plan.
 # Only lines of the documented shape are printed: they reach every session's
 # context, and anything that can push to khe-meta can write them.
+# A line gets " quiet <h>h" when neither its plan file on origin/main nor any
+# branch or origin ref of its repos has a commit in six hours. A repo not
+# cloned here leaves its activity unknown, so that line gets no suffix.
+# khe-meta counts only through the plan file: any session commits there.
 cmd_running() {
-    GIT_OPTIONAL_LOCKS=0 "${sgit[@]}" -C "$root/repos/khe-meta" \
+    local meta="$root/repos/khe-meta" now
+    now="$(date +%s)"
+    GIT_OPTIONAL_LOCKS=0 "${sgit[@]}" -C "$meta" \
         grep -E '^\*\*Running:\*\* ' origin/main -- 'plans/*.md' 2>/dev/null \
         | sed -e 's|^origin/main:plans/||' -e 's|\.md:\*\*Running:\*\* |: |' \
         | grep -E '^[a-z0-9-]{1,80}: (laptop|agent-vm) [0-9]{4}-[0-9]{2}-[0-9]{2}( [a-z0-9-]{1,40}){1,16}$' \
-        | head -n 20 || true
+        | head -n 20 \
+        | while IFS= read -r line; do
+            local plan="${line%%:*}" newest t repo dir hours
+            read -r _ _ repos <<<"${line#*: }"
+            newest="$(GIT_OPTIONAL_LOCKS=0 "${sgit[@]}" -C "$meta" log -1 --format=%ct origin/main -- "plans/$plan.md" 2>/dev/null)" || newest=""
+            newest="${newest:-0}"
+            for repo in $repos; do
+                dir="$root/repos/$repo"
+                [[ "$repo" != khe-workspace ]] || dir="$root"
+                t=""
+                if [[ -e "$dir/.git" ]]; then
+                    t="$(GIT_OPTIONAL_LOCKS=0 "${sgit[@]}" -C "$dir" for-each-ref --sort=-committerdate --count=1 \
+                        --format='%(committerdate:unix)' refs/heads refs/remotes/origin 2>/dev/null)" || t=""
+                fi
+                [[ -n "$t" ]] || { echo "$line"; continue 2; }
+                ((t <= newest)) || newest="$t"
+            done
+            hours=$(( (now - newest) / 3600 ))
+            if ((hours >= 6)); then
+                echo "$line quiet ${hours}h"
+            else
+                echo "$line"
+            fi
+        done || true
 }
 
 case "${1:-}" in

@@ -27,6 +27,10 @@ Skip when the task had no plan.
   Steps left over: `partly done`, plus what is left.
 - Remove the plan's `**Running:**` line (`plan-file` skill, Execute), also
   when the run is only partly done: no session is working on it any more.
+- Set `**From you:**`: keep or write the `after:` items the task leaves
+  for the operator (a look after a deploy, a handed-over push), and set it
+  to `none` only when nothing is left. Those items stay in the plan, not
+  under Waiting.
 - At the end, add `## Outcome`. Its first line is exactly one Caught line,
   which `scripts/agent-metrics.sh` reads in the weekly `agent-metrics`
   skill:
@@ -55,9 +59,9 @@ Skip when the task had no plan.
 - In khe-meta, a finished item also leaves the Backlog at the top of
   `ROADMAP.md`, and a follow-up gets a line there in its place in the order.
 - Follow-ups the task found go in as new items there.
-- What the task leaves for the operator goes under **Waiting** in that
-  Backlog (root `AGENTS.md`, "Who runs what"), and a Waiting line the task
-  finished is removed.
+- What a task with no plan leaves for the operator goes under **Waiting**
+  in that Backlog (root `AGENTS.md`, "Who runs what"); a plan's leftovers
+  go in its From you line. A Waiting line the task finished is removed.
 - No entry and no follow-up: leave the roadmap alone.
 
 ## 4. Repeated corrections

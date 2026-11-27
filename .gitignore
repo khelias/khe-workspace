@@ -23,3 +23,6 @@
 Thumbs.db
 .vscode/
 .idea/
+
+# Local hook state (StopFailure log)
+.claude/state/

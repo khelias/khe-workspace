@@ -138,3 +138,8 @@ hooks"; below is what is Claude Code's own.
   memory with agent-vm (`scripts/memory-sync.py`); a `memory sync:` line
   names the notes that came from agent-vm, a note that differed on both
   machines or a sync that stopped.
+- **A turn cut by an API error leaves a line.** The `StopFailure` hook
+  `.claude/hooks/stop-failure.sh` (async, never blocks) appends the UTC
+  time, session id, error (`rate_limit` for the usage limit) and transcript
+  path to the main checkout's gitignored `.claude/state/stop-failures.log`,
+  trimmed to 200 lines; `next` reports the last day's.

@@ -32,6 +32,7 @@ for r in $(awk '/^[[:space:]]*- name:/{print $3}' repos/repos.yaml); do
   gh workflow list --all --repo khelias/$r --json name,state --jq ".[]|select(.state!=\"active\")|\"$r workflow: \(.name) \(.state)\""
 done
 scripts/workspace.sh status
+scripts/workspace.sh running
 git fetch --quiet && git log --oneline @{u}..
 python3 scripts/docs-check.py --meta
 ```
@@ -47,7 +48,8 @@ python3 scripts/docs-check.py --meta
 - A Renovate PR is held for review once its CI is green and it is more than
   a day old. A failed CI on a PR or on `main` is an item of its own.
 - A workflow that is not active is reported, each one by name: something
-  switched it off, and the reason should be under **Waiting** in the Backlog.
+  switched it off, and the reason should be in its plan's Status, or under
+  **Waiting** in the Backlog when there is no plan.
 - A push, a PR merge and VM diagnosis are the agent's where its session
   allows (estate ADR-023): list them as work, not as the operator's. Offer
   the operator only what `AGENTS.md` "Who runs what" keeps with them (a
@@ -72,8 +74,19 @@ unfinished. Then sort the open steps:
   backups) goes in one line of things to check by hand, not counted.
 - A plan named like credentials (`*password*`, `*secret*`): do not open
   it. Give its name and open-step count, and let the operator size it.
-- A `**Running:**` line older than one day: an item for the operator to
-  confirm or clear, since the run that wrote it has probably ended.
+- Read each open plan's `**Autonomy:**` and `**From you:**` lines
+  (`plan-file` skill). A plan with From you `before: ...` is the
+  operator's item: name what it asks. A done plan with From you `after:
+  ...` (a look after a deploy, a handed-over push) is one line for the
+  operator, ranked below unfinished work.
+- `scripts/workspace.sh running` (in the block above, since sandboxed git
+  may miss refs): a line ending in ` quiet <h>h` has seen no commit in six
+  hours, an item for the operator to confirm or clear. It may have ended,
+  or be a run on the other machine whose commits are not pushed yet. At the limit in
+  `AGENTS.md` "Who runs what", say so: a further run waits.
+- `.claude/state/stop-failures.log` in the main checkout: lines from the
+  last day name sessions an API error cut (the usage limit among them);
+  give each one's session id and error as one item to resume or close.
 - A done plan whose `**Caught:**` line still says `pending` (the
   operator's look or the push outcome): one line asking the operator for
   it, ranked below unfinished work. `retro` then updates the line.
@@ -92,8 +105,9 @@ near-term sections of each repo's `ROADMAP.md`, and the first measurable
 steps in `repos/khe-meta/AMBITIONS.md` and the repos' Ambitions sections.
 Read them even when step 2 found plenty: the operator may want new work.
 
-- **Ready.** Drop an item whose "Waits for" names something not yet done,
-  checked at the blocker's source. Note the blocker that holds up the most
+- **Ready.** List only ready plans (`plan-file` skill, the header) as
+  ready, and the rest with what they wait for. Drop an item whose "Waits
+  for" names something not yet done, checked at the blocker's source. Note the blocker that holds up the most
   items: clearing it may be the best candidate.
 
 ## 4. Drift
